@@ -1,6 +1,15 @@
 "use client";
 
-import { ChevronDown, Logs, LogOut, Menu, UserRound, UsersRound, WalletCards } from "lucide-react";
+import {
+  BarChart3,
+  ChevronDown,
+  Logs,
+  LogOut,
+  Menu,
+  UserRound,
+  UsersRound,
+  WalletCards,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -58,6 +67,12 @@ function AdminMenuLinks() {
             icon={<Logs aria-hidden="true" className="size-4" />}
           >
             Audit logs
+          </DropdownLink>
+          <DropdownLink
+            href="/admin/analytics"
+            icon={<BarChart3 aria-hidden="true" className="size-4" />}
+          >
+            Analytics
           </DropdownLink>
         </div>
       </details>

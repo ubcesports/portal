@@ -30,6 +30,7 @@ type RouterParams struct {
 	AdminHandler         *handlers.AdminHandler
 	MembershipHandler    *handlers.MembershipHandler
 	StripeWebhookHandler *handlers.StripeWebhookHandler
+	AnalyticsHandler     *handlers.AnalyticsHandler
 	Limen                *limen.Limen
 }
 
@@ -85,6 +86,11 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.Get("/admin/audit-logs/export", params.AdminHandler.ExportAuditLogsCSV)
 		r.Post("/admin/membership/add/{id}", params.AdminHandler.AddMembershipToUser)
 		r.Get("/admin/memberships/eligible/{id}", params.AdminHandler.GetEligibleTiersWithPricesById)
+
+		r.Get("/admin/analytics/summary", params.AnalyticsHandler.GetSummary)
+		r.Get("/admin/analytics/memberships-over-time", params.AnalyticsHandler.GetMembershipsBoughtOverTime)
+		r.Get("/admin/analytics/revenue-over-time", params.AnalyticsHandler.GetRevenueOverTime)
+		r.Get("/admin/analytics/export", params.AnalyticsHandler.ExportCSV)
 	})
 
 	return r
