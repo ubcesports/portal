@@ -28,7 +28,10 @@ export function RevenueChart({ data, granularity, isLoading }: RevenueChartProps
         </div>
       ) : (
         <AnalyticsBarChart
-          data={data.map((point) => ({ periodStart: point.period_start, value: point.revenue_cents }))}
+          data={data.map((point) => ({
+            periodStart: point.period_start,
+            value: point.revenue_cents,
+          }))}
           granularity={granularity}
           color={CHART_COLOR}
           valueLabel="Revenue"

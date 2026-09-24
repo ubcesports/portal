@@ -70,9 +70,7 @@ export function AnalyticsFiltersToolbar({
         <SelectField
           label="Program"
           value={filters.programName ?? ""}
-          onChange={(value) =>
-            onChange({ programName: value || undefined, tierIds: undefined })
-          }
+          onChange={(value) => onChange({ programName: value || undefined, tierIds: undefined })}
           options={programOptions.map((program) => ({ value: program, label: program }))}
           allLabel="All programs"
           ariaLabel="Filter by program"
@@ -147,7 +145,11 @@ export function AnalyticsFiltersToolbar({
       </ToolbarRow>
 
       <div className="flex flex-wrap justify-end gap-2 border-t border-brand-border/70 pt-4">
-        <ResetButton label="Reset Filters" onClick={onReset} disabled={!hasActiveFilters(filters)} />
+        <ResetButton
+          label="Reset Filters"
+          onClick={onReset}
+          disabled={!hasActiveFilters(filters)}
+        />
         <ActionButton
           onClick={onExport}
           disabled={isExporting}
