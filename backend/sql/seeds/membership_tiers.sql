@@ -73,6 +73,7 @@ upserted_tiers AS (
         "group",
         stripe_product_id,
         is_active,
+        program_id,
         updated_at
     )
     SELECT
@@ -83,6 +84,7 @@ upserted_tiers AS (
         group_name::group_type,
         stripe_product_id,
         is_active,
+        (SELECT id FROM membership_programs WHERE program_name = 'general'),
         NOW()
     FROM tier_seed
     ON CONFLICT (stripe_product_id) DO UPDATE SET
