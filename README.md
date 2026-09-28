@@ -89,6 +89,7 @@ This is the current database laid out in a visual format. If you want to look mo
 - [Goose](https://github.com/pressly/goose) for migrations
 - [sqlc](https://sqlc.dev) when changing SQL queries
 - [Stripe CLI](https://docs.stripe.com/stripe-cli) for local checkout/webhook testing
+- [pgAdmin](https://www.pgadmin.org/download/) (optional) for inspecting the local database
 - [Make](https://www.gnu.org/software/make/) for running dev commands easily
 - Zetrova, Stripe, and Resend development credentials from a project maintainer
 
@@ -126,7 +127,7 @@ You will also need valid values for the following backend integrations. The API 
 | `STRIPE_SECRET_KEY`                                            | Stripe API access                                                      | Ask a project maintainer to give you access to the sandbox.                                                                         |
 | `STRIPE_WEBHOOK_SECRET`                                        | Signature verification for forwarded webhook events                    | Run `stripe listen --forward-to localhost:8080/webhooks/stripe`; the Stripe CLI prints a local webhook signing secret.              |
 | `STRIPE_CHECKOUT_SUCCESS_URL`, `STRIPE_CHECKOUT_CANCEL_URL`    | Return destinations after checkout                                     | Use the local frontend checkout URLs already provided in [backend/.env.example](./backend/.env.example).                            |
-| `RESEND_API_KEY`, `SENDER_EMAIL`                               | Expiration notification email                                          | Ask a project maintainer for development values.            |
+| `RESEND_API_KEY`, `SENDER_EMAIL`                               | Expiration notification email                                          | Ask a project maintainer for development values.                                                                                    |
 | `EXEC_ONBOARDING_CODE`                                         | Optional invite code used to assign executive access during onboarding | No need for this for development.                                                                                                   |
 
 The frontend defaults to ports `3000` and backend to `8080`.
@@ -145,6 +146,23 @@ Then migrate to the latest version and seed the database:
 make migration-up
 make seed file=membership_tiers_staging.sql
 ```
+
+#### Inspect the Docker database with pgAdmin (optional)
+
+Start the database with `make db`, then open pgAdmin and select **Register > Server** from the **Servers** node. Configure the server with the following values:
+
+| Tab        | Field                | Value                                              |
+| ---------- | -------------------- | -------------------------------------------------- |
+| General    | Name                 | `UBCEA Portal (local)`                             |
+| Connection | Host name/address    | `127.0.0.1`                                        |
+| Connection | Port                 | `5433`                                             |
+| Connection | Maintenance database | The value of `POSTGRES_DB` in `backend/.env`       |
+| Connection | Username             | The value of `POSTGRES_USER` in `backend/.env`     |
+| Connection | Password             | The value of `POSTGRES_PASSWORD` in `backend/.env` |
+
+You can optionally enable **Save password**, then select **Save**. Both local Compose configurations publish the shared PostgreSQL database on host port `5433`, so this connection works whether the standalone database or the full Docker stack started it.
+
+Use `127.0.0.1:5433` only when pgAdmin runs directly on your computer. A pgAdmin container attached to the `portal` Compose network would instead use host `db` and port `5432`.
 
 ### 4. Run the stack
 
