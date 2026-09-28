@@ -1,4 +1,6 @@
 # For locally testing services using docker
+name: portal
+
 services:
   db:
     image: postgres:17
@@ -6,15 +8,11 @@ services:
       - "127.0.0.1:5433:5432"
     restart: unless-stopped
     env_file:
-      - .env
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      - ../backend/.env
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -24,29 +22,34 @@ services:
       context: ../backend
     restart: "no"
     env_file:
-      - .env
+      - ../backend/.env
     environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
+      PGHOST: db
+      PGPORT: "5432"
+      PGSSLMODE: disable
     depends_on:
       db:
         condition: service_healthy
     entrypoint:
-      [
-        "/bin/sh",
-        "-c",
-        'exec /usr/local/bin/goose -dir /app/sql/migrations postgres "$$DATABASE_URL" up',
-      ]
+      - /bin/sh
+      - -c
+      - |
+        export PGUSER="$${POSTGRES_USER}"
+        export PGPASSWORD="$${POSTGRES_PASSWORD}"
+        export PGDATABASE="$${POSTGRES_DB}"
+        exec /usr/local/bin/goose -dir /app/sql/migrations postgres "" up
 
   backend:
     build:
       context: ../backend
     env_file:
-      - .env
+      - ../backend/.env
     environment:
       BASE_URL: http://0.0.0.0:8080
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?sslmode=disable
       FRONTEND_URL: http://localhost:3000
       OAUTH_CALLBACK_URL: http://localhost:8080/auth/oauth/zetrova/callback
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
     depends_on:
       db:
         condition: service_healthy
@@ -84,6 +87,29 @@ services:
         max-file: "5"
     restart: unless-stopped
 
+  stripe-webhook:
+    image: stripe/stripe-cli:latest
+    env_file:
+      - ../backend/.env
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        export STRIPE_API_KEY="$${STRIPE_SECRET_KEY}"
+        exec /bin/stripe listen \
+          --events checkout.session.completed,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed,checkout.session.expired \
+          --forward-to http://backend:8080/webhooks/stripe
+    depends_on:
+      - backend
+    labels:
+      com.ubcea.logs.enabled: "true"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    restart: unless-stopped
+
   alloy:
     image: grafana/alloy:latest
     command:
@@ -91,10 +117,8 @@ services:
       - --server.http.listen-addr=0.0.0.0:12345
       - --storage.path=/var/lib/alloy/data
       - /etc/alloy/config.alloy
-    environment:
-      GCLOUD_HOSTED_LOGS_URL: ${GCLOUD_HOSTED_LOGS_URL:?Set GCLOUD_HOSTED_LOGS_URL}
-      GCLOUD_HOSTED_LOGS_ID: ${GCLOUD_HOSTED_LOGS_ID:?Set GCLOUD_HOSTED_LOGS_ID}
-      GCLOUD_RW_API_KEY: ${GCLOUD_RW_API_KEY:?Set GCLOUD_RW_API_KEY}
+    env_file:
+      - ../backend/.env
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -105,4 +129,6 @@ services:
 
 volumes:
   postgres-data:
+    external: true
+    name: deploy_postgres-data
   alloy-data:
