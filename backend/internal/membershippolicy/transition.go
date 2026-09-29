@@ -34,9 +34,9 @@ func (p *TransitionPolicy) Evaluate(
 	_ *dto.ProfileDTO,
 	current *dto.MembershipDTO,
 	requested *dto.MembershipTierDTO,
-) (dto.PurchaseType, bool, error) {
+) (EvaluationResult, error) {
 	if requested.ProgramName != p.programName {
-		return "", false, fmt.Errorf(
+		return EvaluationResult{}, fmt.Errorf(
 			"policy %q cannot evaluate program %q",
 			p.programName,
 			requested.ProgramName,
@@ -52,6 +52,14 @@ func (p *TransitionPolicy) Evaluate(
 		From: from,
 		To:   requested.Slug,
 	}]
+	if allowed {
+		return EvaluationResult{PurchaseType: purchaseType, Allowed: true}, nil
+	}
 
-	return purchaseType, allowed, nil
+	reason := dto.ReasonNotEligibleCurrent
+	if current != nil && current.Slug == requested.Slug {
+		reason = dto.ReasonAlreadyOwned
+	}
+
+	return EvaluationResult{Reason: reason}, nil
 }

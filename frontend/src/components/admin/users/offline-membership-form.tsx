@@ -7,6 +7,7 @@ import { ActionButton } from "@/components/action-button";
 import { SurfacePanel } from "@/components/surface-panel";
 import { useAddOfflineMembership, useAdminEligibleMemberships } from "@/lib/admin/admin.hook";
 import type { OfflinePaymentMethod } from "@/lib/types/admin.types";
+import type { EligibleMembershipTier } from "@/lib/types/membership.types";
 import { formatMembershipPrice } from "@/components/membership/pricing";
 import { titleCase } from "@/lib/utils/groups";
 
@@ -34,9 +35,21 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
   } = useAdminEligibleMemberships(userId);
   const { mutateAsync: addMembership, isPending: isAdding } = useAddOfflineMembership(userId);
 
+  // Manually granting a membership only makes sense for tiers this user can
+  // actually receive; the endpoint now also returns ineligible tiers (with a
+  // reason instead of a price) for the public pricing page's benefit, so
+  // this form filters them back out locally.
+  const purchasableMemberships = useMemo(
+    () =>
+      eligibleMemberships.filter(
+        (tier): tier is Extract<EligibleMembershipTier, { eligible: true }> => tier.eligible,
+      ),
+    [eligibleMemberships],
+  );
+
   const selectedTier = useMemo(
-    () => eligibleMemberships.find((tier) => tier.id === tierId),
-    [eligibleMemberships, tierId],
+    () => purchasableMemberships.find((tier) => tier.id === tierId),
+    [purchasableMemberships, tierId],
   );
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -97,17 +110,17 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
               <select
                 value={tierId}
                 onChange={(event) => setTierId(event.target.value)}
-                disabled={isLoadingEligibility || isAdding || eligibleMemberships.length === 0}
+                disabled={isLoadingEligibility || isAdding || purchasableMemberships.length === 0}
                 className={FIELD_CLASS_NAME}
               >
                 <option value="">
                   {isLoadingEligibility
                     ? "Loading eligible memberships…"
-                    : eligibleMemberships.length === 0
+                    : purchasableMemberships.length === 0
                       ? "No eligible memberships"
                       : "Select a membership"}
                 </option>
-                {eligibleMemberships.map((tier) => (
+                {purchasableMemberships.map((tier) => (
                   <option key={tier.id} value={tier.id}>
                     {tier.program_name} — {tier.title} — {formatMembershipPrice(tier.prices.price)}
                   </option>
@@ -172,7 +185,7 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
           </div>
         ) : null}
 
-        {!eligibilityFailed && !isLoadingEligibility && eligibleMemberships.length === 0 && (
+        {!eligibilityFailed && !isLoadingEligibility && purchasableMemberships.length === 0 && (
           <p className="mt-3 text-sm text-brand-text-muted" role="status">
             This user currently has no membership options they are eligible to receive.
           </p>

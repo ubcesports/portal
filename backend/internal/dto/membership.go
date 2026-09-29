@@ -24,14 +24,18 @@ type EligibleMembershipTierDTO struct {
 	Title          string                   `json:"title"`
 	Description    string                   `json:"description"`
 	Slug           string                   `json:"slug"`
-	PurchaseType   PurchaseType             `json:"purchase_type"`
 	ProductId      string                   `json:"product_id"`
 	Benefits       []string                 `json:"benefits"`
 	Limitations    []string                 `json:"limitations"`
-	Price          MembershipTierPriceDTO   `json:"prices"`
 	ProgramId      string                   `json:"program_id"`
 	ProgramName    string                   `json:"program_name"`
 	ExpirationType MembershipExpirationType `json:"expiration_type"`
+
+	Eligible          bool                    `json:"eligible"`
+	PurchaseType      PurchaseType            `json:"purchase_type,omitempty"`
+	Price             *MembershipTierPriceDTO `json:"prices,omitempty"`
+	UnavailableReason TierUnavailableReason   `json:"unavailable_reason,omitempty"`
+	PurchaseOpensAt   *time.Time              `json:"purchase_opens_at,omitempty"`
 }
 
 type MembershipTierPriceDTO struct {

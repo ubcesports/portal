@@ -57,3 +57,14 @@ const (
 	PaymentMethodCash      PaymentMethodType = "cash"
 	PaymentMethodEtransfer PaymentMethodType = "etransfer"
 )
+
+type TierUnavailableReason string
+
+const (
+	ReasonAlreadyOwned          TierUnavailableReason = "already_owned"
+	ReasonNotEligibleCurrent    TierUnavailableReason = "not_eligible_current_membership"
+	ReasonExecutiveRestricted   TierUnavailableReason = "executive_restricted"
+	ReasonCompetitiveRestricted TierUnavailableReason = "competitive_restricted"
+	ReasonPurchaseClosed        TierUnavailableReason = "purchase_closed"
+	ReasonUnavailable           TierUnavailableReason = "unavailable"
+)

@@ -31,10 +31,27 @@ export type MembershipTier = {
   expiration_type: MembershipExpirationType;
 };
 
-export type EligibleMembershipTier = Omit<MembershipTier, "prices"> & {
-  purchase_type: PurchaseType;
-  prices: MembershipTierPrice;
-};
+export type TierUnavailableReason =
+  | "already_owned"
+  | "not_eligible_current_membership"
+  | "executive_restricted"
+  | "competitive_restricted"
+  | "purchase_closed"
+  | "unavailable";
+
+export type EligibleMembershipTier = Omit<MembershipTier, "prices"> &
+  (
+    | {
+        eligible: true;
+        purchase_type: PurchaseType;
+        prices: MembershipTierPrice;
+      }
+    | {
+        eligible: false;
+        unavailable_reason: TierUnavailableReason;
+        purchase_opens_at?: string;
+      }
+  );
 
 export type Transaction = {
   id: string;

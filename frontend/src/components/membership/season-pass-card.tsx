@@ -15,7 +15,7 @@ type SeasonPassCardProps = {
   checkoutPending: boolean;
   isSignedIn: boolean;
   needsOnboarding: boolean;
-  onCheckout: (tier: EligibleMembershipTier) => void;
+  onCheckout: (tier: Extract<EligibleMembershipTier, { eligible: true }>) => void;
   onSignIn: () => void;
   signInPending: boolean;
 };
@@ -55,7 +55,7 @@ export function SeasonPassCard({
       </div>
 
       <div className="flex flex-1 flex-col p-6 sm:p-7">
-        {eligibleTier ? (
+        {eligibleTier?.eligible ? (
           <div className="border border-brand-primary/35 bg-brand-primary/10 p-5">
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium text-blue-100">
@@ -116,7 +116,13 @@ export function SeasonPassCard({
   );
 }
 
-function BenefitList({ benefits, limitations }: { benefits: string[]; limitations: string[] }) {
+function BenefitList({
+  benefits = [],
+  limitations = [],
+}: {
+  benefits?: string[];
+  limitations?: string[];
+}) {
   if (benefits.length === 0 && limitations.length === 0) {
     return null;
   }

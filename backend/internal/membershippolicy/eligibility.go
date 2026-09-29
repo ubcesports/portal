@@ -37,6 +37,8 @@ func NewEligibilityService(
 */
 
 func (s *EligibilityService) GetEligibleTiers(ctx context.Context, userId string) ([]dto.EligibleMembershipTierDTO, error) {
+	now := time.Now()
+
 	// Get user info
 	user, err := s.profileReader.GetProfileByUserID(ctx, userId)
 	if err != nil {
@@ -57,53 +59,83 @@ func (s *EligibilityService) GetEligibleTiers(ctx context.Context, userId string
 	for i := range tiers {
 		tier := &tiers[i]
 
-		// 1. Check if the tier purchase window is closed
-		closed, err := IsPurchaseClosed(time.Now(), tier.ExpirationType)
-		if err != nil {
-			return nil, err
-		}
-		if closed {
-			continue
-		}
-
-		// 2. Check if user group is eligible
+		// 1. Tiers a user's group can't even see stay fully hidden (eg. a
+		// regular member never sees the Executive tier at all), rather than
+		// showing up with a reason.
 		if !isUserGroupEligible(user.Groups, tier.RequiredGroup) {
 			continue
 		}
 
-		// 3. Get user's personalized price
-		price, err := getTierPriceForUser(user.IsStudent, *tier)
-		if err != nil {
-			return nil, err
-		}
-		if price == nil {
-			continue
+		base := dto.EligibleMembershipTierDTO{
+			ID:             tier.ID,
+			Title:          tier.Title,
+			Description:    tier.Description,
+			Slug:           tier.Slug,
+			ProductId:      tier.ProductId,
+			Benefits:       tier.Benefits,
+			Limitations:    tier.Limitations,
+			ProgramId:      tier.ProgramId,
+			ProgramName:    tier.ProgramName,
+			ExpirationType: tier.ExpirationType,
 		}
 
-		// 4. Check if user alr has a membership for the current program
+		// 2. Check if user alr has a membership for the current program
 		current, err := findCurrentMembershipForProgram(memberships, tier.ProgramId)
 		if err != nil {
 			return nil, err
 		}
 
-		// 5. Check policies for current program based on user's membership
+		// 3. Check policies for current program based on user's membership.
+		// This takes priority over the purchase window: a tier that's
+		// already owned, or blocked by exec/competitive status, should say
+		// so rather than a possibly-irrelevant "purchase opens on" date.
 		policy, err := s.policies.Get(tier.ProgramName)
 		if err != nil {
 			return nil, err
 		}
 
-		purchaseType, allowed, err := policy.Evaluate(user, current, tier)
+		evaluation, err := policy.Evaluate(user, current, tier)
 		if err != nil {
 			return nil, err
 		}
-		if !allowed {
+		if !evaluation.Allowed {
+			base.UnavailableReason = evaluation.Reason
+			result = append(result, base)
+			continue
+		}
+
+		// 4. Otherwise-eligible tiers are unavailable while the purchase
+		// window is closed.
+		closed, err := IsPurchaseClosed(now, tier.ExpirationType)
+		if err != nil {
+			return nil, err
+		}
+		if closed {
+			opensAt, err := NextPurchaseOpenDate(now, tier.ExpirationType)
+			if err != nil {
+				return nil, err
+			}
+			base.UnavailableReason = dto.ReasonPurchaseClosed
+			base.PurchaseOpensAt = &opensAt
+			result = append(result, base)
+			continue
+		}
+
+		// 5. Get user's personalized price
+		price, err := getTierPriceForUser(user.IsStudent, *tier)
+		if err != nil {
+			return nil, err
+		}
+		if price == nil {
+			base.UnavailableReason = dto.ReasonUnavailable
+			result = append(result, base)
 			continue
 		}
 
 		finalPrice := price.Price
 
 		// 6. Adjust price for upgrades
-		if purchaseType == dto.PurchaseUpgrade {
+		if evaluation.PurchaseType == dto.PurchaseUpgrade {
 			if current == nil {
 				return nil, fmt.Errorf("upgrade not allowed without a membership in this program")
 			}
@@ -117,24 +149,14 @@ func (s *EligibilityService) GetEligibleTiers(ctx context.Context, userId string
 			finalPrice = float64(amountDueCents) / 100
 		}
 
-		result = append(result, dto.EligibleMembershipTierDTO{
-			ID:             tier.ID,
-			Title:          tier.Title,
-			Description:    tier.Description,
-			Slug:           tier.Slug,
-			PurchaseType:   purchaseType,
-			ProductId:      tier.ProductId,
-			Benefits:       tier.Benefits,
-			Limitations:    tier.Limitations,
-			ProgramId:      tier.ProgramId,
-			ProgramName:    tier.ProgramName,
-			ExpirationType: tier.ExpirationType,
-			Price: dto.MembershipTierPriceDTO{
-				Price:             finalPrice,
-				PriceId:           price.PriceId,
-				IsStudentRequired: nil,
-			},
-		})
+		base.Eligible = true
+		base.PurchaseType = evaluation.PurchaseType
+		base.Price = &dto.MembershipTierPriceDTO{
+			Price:             finalPrice,
+			PriceId:           price.PriceId,
+			IsStudentRequired: nil,
+		}
+		result = append(result, base)
 	}
 
 	return result, nil
@@ -294,6 +316,45 @@ func IsPurchaseClosed(
 
 	default:
 		return false, fmt.Errorf(
+			"unsupported membership expiration type %q",
+			expirationType,
+		)
+	}
+}
+
+// NextPurchaseOpenDate reports when a currently-closed purchase window
+// reopens, for display on the pricing page. Only meaningful to call when
+// IsPurchaseClosed is true for the same (now, expirationType) pair.
+func NextPurchaseOpenDate(
+	now time.Time,
+	expirationType dto.MembershipExpirationType,
+) (time.Time, error) {
+	location, err := time.LoadLocation("America/Vancouver")
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	localNow := now.In(location)
+	year := localNow.Year()
+
+	switch expirationType {
+	case dto.MembershipExpirationYear:
+		// Only ever closed April 28-30, reopening May 1 the same year.
+		return time.Date(year, time.May, 1, 0, 0, 0, 0, location), nil
+
+	case dto.MembershipExpirationSemester:
+		// Closed either in the last days of December (reopens New Year's
+		// Day) or from April 28 through August (reopens September 1).
+		if localNow.Month() == time.December {
+			return time.Date(year+1, time.January, 1, 0, 0, 0, 0, location), nil
+		}
+		return time.Date(year, time.September, 1, 0, 0, 0, 0, location), nil
+
+	case dto.MembershipExpirationDay:
+		return time.Date(year, time.September, 1, 0, 0, 0, 0, location), nil
+
+	default:
+		return time.Time{}, fmt.Errorf(
 			"unsupported membership expiration type %q",
 			expirationType,
 		)

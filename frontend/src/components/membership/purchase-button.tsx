@@ -1,6 +1,6 @@
 import { ArrowRight, Loader2, LogIn } from "lucide-react";
 import Link from "next/link";
-import { purchaseLabel } from "@/components/membership/pricing";
+import { purchaseLabel, unavailableMessage } from "@/components/membership/pricing";
 import type { EligibleMembershipTier } from "@/lib/types/membership.types";
 
 type PurchaseButtonProps = {
@@ -8,7 +8,7 @@ type PurchaseButtonProps = {
   isSignedIn: boolean;
   needsOnboarding: boolean;
   checkoutPending: boolean;
-  onCheckout: (tier: EligibleMembershipTier) => void;
+  onCheckout: (tier: Extract<EligibleMembershipTier, { eligible: true }>) => void;
   onSignIn: () => void;
   signInPending: boolean;
   featured?: boolean;
@@ -28,7 +28,7 @@ export function PurchaseButton({
     ? "border-brand-primary bg-brand-primary hover:bg-brand-primary-hover"
     : "border-brand-border bg-white/[0.04] hover:border-brand-text-muted hover:bg-white/[0.08]";
 
-  if (tier) {
+  if (tier?.eligible) {
     return (
       <button
         type="button"
@@ -78,7 +78,7 @@ export function PurchaseButton({
 
   return (
     <div className="flex h-12 w-full items-center justify-center border border-brand-border bg-white/2 px-5 text-center text-sm font-medium text-brand-text-muted">
-      Not currently available
+      {tier ? unavailableMessage(tier) : "Not currently available"}
     </div>
   );
 }

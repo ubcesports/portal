@@ -47,7 +47,7 @@ export function PricingClient({ initialCatalog }: PricingClientProps) {
     variables: checkoutTier,
     isPending: checkoutPending,
   } = useMutation({
-    mutationFn: async (tier: EligibleMembershipTier) => {
+    mutationFn: async (tier: Extract<EligibleMembershipTier, { eligible: true }>) => {
       const response = await apiClient.post<CheckoutResponse>("/membership/checkout", {
         tier_id: tier.id,
       } satisfies CheckoutRequest);
@@ -60,7 +60,10 @@ export function PricingClient({ initialCatalog }: PricingClientProps) {
   const eligibleById = (tierId: string) => eligibleTiers.find((tier) => tier.id === tierId);
 
   const mainTiers = MAIN_TIER_SLUGS.map(tierBySlug).filter(notNull);
-  const assignedTiers = eligibleTiers.filter((tier) => RESTRICTED_TIER_SLUGS.includes(tier.slug));
+  const assignedTiers = eligibleTiers.filter(
+    (tier): tier is Extract<EligibleMembershipTier, { eligible: true }> =>
+      tier.eligible && RESTRICTED_TIER_SLUGS.includes(tier.slug),
+  );
   const additionalTiers =
     catalog?.filter(
       (tier) => !MAIN_TIER_SLUGS.includes(tier.slug) && !RESTRICTED_TIER_SLUGS.includes(tier.slug),

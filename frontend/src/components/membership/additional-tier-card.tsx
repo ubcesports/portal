@@ -13,7 +13,7 @@ type AdditionalTierCardProps = {
   checkoutPending: boolean;
   isSignedIn: boolean;
   needsOnboarding: boolean;
-  onCheckout: (tier: EligibleMembershipTier) => void;
+  onCheckout: (tier: Extract<EligibleMembershipTier, { eligible: true }>) => void;
   onSignIn: () => void;
   signInPending: boolean;
 };
@@ -43,12 +43,12 @@ export function AdditionalTierCard({
             {tier.description || `${tier.title} UBCEA membership pass.`}
           </p>
           <BenefitList limitations={tier.limitations} benefits={tier.benefits} />
-          {!eligibleTier ? <InlinePublicPrices tier={tier} /> : null}
+          {!eligibleTier?.eligible ? <InlinePublicPrices tier={tier} /> : null}
         </div>
       </div>
 
       <div className="border-t border-brand-border p-6 lg:border-l lg:border-t-0">
-        {eligibleTier ? (
+        {eligibleTier?.eligible ? (
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wider text-brand-text-subtle">
@@ -86,7 +86,13 @@ export function AdditionalTierCard({
   );
 }
 
-function BenefitList({ benefits, limitations }: { benefits: string[]; limitations: string[] }) {
+function BenefitList({
+  benefits = [],
+  limitations = [],
+}: {
+  benefits?: string[];
+  limitations?: string[];
+}) {
   if (benefits.length === 0 && limitations.length === 0) {
     return null;
   }
