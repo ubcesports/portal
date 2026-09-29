@@ -37,6 +37,8 @@ func NewEligibilityService(
 */
 
 func (s *EligibilityService) GetEligibleTiers(ctx context.Context, userId string) ([]dto.EligibleMembershipTierDTO, error) {
+	now := time.Now()
+		
 	// Get user info
 	user, err := s.profileReader.GetProfileByUserID(ctx, userId)
 	if err != nil {
@@ -104,12 +106,12 @@ func (s *EligibilityService) GetEligibleTiers(ctx context.Context, userId string
 
 		// 4. Otherwise-eligible tiers are unavailable while the purchase
 		// window is closed.
-		closed, err := IsPurchaseClosed(time.Now(), tier.ExpirationType)
+		closed, err := IsPurchaseClosed(now, tier.ExpirationType)
 		if err != nil {
 			return nil, err
 		}
 		if closed {
-			opensAt, err := NextPurchaseOpenDate(time.Now(), tier.ExpirationType)
+			opensAt, err := NextPurchaseOpenDate(now, tier.ExpirationType)
 			if err != nil {
 				return nil, err
 			}
