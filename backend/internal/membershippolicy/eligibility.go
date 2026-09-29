@@ -38,7 +38,7 @@ func NewEligibilityService(
 
 func (s *EligibilityService) GetEligibleTiers(ctx context.Context, userId string) ([]dto.EligibleMembershipTierDTO, error) {
 	now := time.Now()
-		
+
 	// Get user info
 	user, err := s.profileReader.GetProfileByUserID(ctx, userId)
 	if err != nil {
