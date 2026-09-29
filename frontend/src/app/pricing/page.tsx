@@ -44,7 +44,7 @@ const API_BASE =
 async function getMembershipCatalog(): Promise<MembershipTier[] | undefined> {
   try {
     const response = await fetch(`${API_BASE}/membership/tiers`, {
-      next: { revalidate: 3600 },
+      cache: "no-store",
     });
 
     if (!response.ok) {
