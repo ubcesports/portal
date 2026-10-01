@@ -1,4 +1,4 @@
-import { Check, ShieldCheck } from "lucide-react";
+import { Check, ShieldCheck, X } from "lucide-react";
 import { PurchaseButton } from "@/components/membership/purchase-button";
 import { formatMembershipPrice } from "@/components/membership/pricing";
 import type { EligibleMembershipTier } from "@/lib/types/membership.types";
@@ -24,12 +24,18 @@ export function AssignedPassCard({ tier, checkoutPending, onCheckout }: Assigned
           <p className="mt-2 max-w-2xl text-sm leading-6 text-brand-text-muted">
             {tier.description}
           </p>
-          {tier.benefits.length > 0 ? (
+          {tier.benefits.length > 0 || tier.limitations.length > 0 ? (
             <ul className="mt-4 grid gap-2 text-sm text-brand-text-muted">
               {tier.benefits.map((benefit) => (
                 <li key={benefit} className="flex gap-3">
                   <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-blue-200" />
                   <span>{benefit}</span>
+                </li>
+              ))}
+              {tier.limitations.map((limitation) => (
+                <li key={limitation} className="flex gap-3">
+                  <X aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-red-300" />
+                  <span>{limitation}</span>
                 </li>
               ))}
             </ul>
@@ -52,6 +58,7 @@ export function AssignedPassCard({ tier, checkoutPending, onCheckout }: Assigned
         <PurchaseButton
           tier={tier}
           isSignedIn
+          needsOnboarding={false}
           checkoutPending={checkoutPending}
           onCheckout={onCheckout}
           onSignIn={() => undefined}

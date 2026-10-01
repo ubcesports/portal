@@ -97,6 +97,7 @@ func (r *MembershipRepository) GetActiveTiersWithPrices(
 			Slug:        row.Slug.String,
 			ProductId:   row.StripeProductID.String,
 			Benefits:    row.Benefits,
+			Limitations: row.Limitations,
 			Prices:      []dto.MembershipTierPriceDTO{price},
 			ProgramId:   row.ProgramID.String(),
 			ProgramName: row.ProgramName,

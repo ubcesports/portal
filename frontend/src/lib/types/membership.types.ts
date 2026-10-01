@@ -22,6 +22,7 @@ export type MembershipTier = {
   title: string;
   description: string;
   benefits: string[];
+  limitations: string[];
   slug: string;
   product_id: string;
   prices: MembershipTierPrice[];

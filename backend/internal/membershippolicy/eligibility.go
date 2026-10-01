@@ -125,6 +125,7 @@ func (s *EligibilityService) GetEligibleTiers(ctx context.Context, userId string
 			PurchaseType:   purchaseType,
 			ProductId:      tier.ProductId,
 			Benefits:       tier.Benefits,
+			Limitations:    tier.Limitations,
 			ProgramId:      tier.ProgramId,
 			ProgramName:    tier.ProgramName,
 			ExpirationType: tier.ExpirationType,

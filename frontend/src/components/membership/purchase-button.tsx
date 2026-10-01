@@ -1,10 +1,12 @@
 import { ArrowRight, Loader2, LogIn } from "lucide-react";
+import Link from "next/link";
 import { purchaseLabel } from "@/components/membership/pricing";
 import type { EligibleMembershipTier } from "@/lib/types/membership.types";
 
 type PurchaseButtonProps = {
   tier?: EligibleMembershipTier;
   isSignedIn: boolean;
+  needsOnboarding: boolean;
   checkoutPending: boolean;
   onCheckout: (tier: EligibleMembershipTier) => void;
   onSignIn: () => void;
@@ -15,6 +17,7 @@ type PurchaseButtonProps = {
 export function PurchaseButton({
   tier,
   isSignedIn,
+  needsOnboarding,
   checkoutPending,
   onCheckout,
   onSignIn,
@@ -58,6 +61,18 @@ export function PurchaseButton({
         )}
         {signInPending ? "Connecting" : "Sign in to purchase"}
       </button>
+    );
+  }
+
+  if (needsOnboarding) {
+    return (
+      <Link
+        href="/onboard"
+        className={`inline-flex h-12 w-full items-center justify-center gap-2 border px-5 text-sm font-semibold text-brand-text transition ${baseClass}`}
+      >
+        <ArrowRight aria-hidden="true" className="size-4" />
+        Finish account setup
+      </Link>
     );
   }
 

@@ -1,4 +1,4 @@
-import { CalendarDays, Check, Sparkles } from "lucide-react";
+import { CalendarDays, Check, Sparkles, X } from "lucide-react";
 import { PurchaseButton } from "@/components/membership/purchase-button";
 import {
   formatMembershipExpiration,
@@ -14,6 +14,7 @@ type SeasonPassCardProps = {
   eligibleTier?: EligibleMembershipTier;
   checkoutPending: boolean;
   isSignedIn: boolean;
+  needsOnboarding: boolean;
   onCheckout: (tier: EligibleMembershipTier) => void;
   onSignIn: () => void;
   signInPending: boolean;
@@ -24,6 +25,7 @@ export function SeasonPassCard({
   eligibleTier,
   checkoutPending,
   isSignedIn,
+  needsOnboarding,
   onCheckout,
   onSignIn,
   signInPending,
@@ -79,7 +81,7 @@ export function SeasonPassCard({
             <p className="text-sm leading-6 text-brand-text-muted">
               {tier.description || `${tier.title} UBCEA membership pass.`}
             </p>
-            <BenefitList benefits={tier.benefits} />
+            <BenefitList limitations={tier.limitations} benefits={tier.benefits} />
           </div>
 
           <div className="mt-auto pt-5">
@@ -101,6 +103,7 @@ export function SeasonPassCard({
           <PurchaseButton
             tier={eligibleTier}
             isSignedIn={isSignedIn}
+            needsOnboarding={needsOnboarding}
             checkoutPending={checkoutPending}
             onCheckout={onCheckout}
             onSignIn={onSignIn}
@@ -113,8 +116,8 @@ export function SeasonPassCard({
   );
 }
 
-function BenefitList({ benefits }: { benefits: string[] }) {
-  if (benefits.length === 0) {
+function BenefitList({ benefits, limitations }: { benefits: string[]; limitations: string[] }) {
+  if (benefits.length === 0 && limitations.length === 0) {
     return null;
   }
 
@@ -124,6 +127,12 @@ function BenefitList({ benefits }: { benefits: string[] }) {
         <li key={benefit} className="flex gap-3">
           <Check aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-blue-200" />
           <span>{benefit}</span>
+        </li>
+      ))}
+      {limitations.map((limitation) => (
+        <li key={limitation} className="flex gap-3">
+          <X aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-red-300" />
+          <span>{limitation}</span>
         </li>
       ))}
     </ul>

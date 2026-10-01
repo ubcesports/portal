@@ -30,6 +30,7 @@ export function PricingClient({ initialCatalog }: PricingClientProps) {
   } = useMembershipCatalog(initialCatalog);
   const { data: profile } = useOptionalProfile();
   const isSignedIn = !!profile;
+  const needsOnboarding = isSignedIn && !profile.onboardingCompletedAt;
   const canLoadEligibility = !!profile?.onboardingCompletedAt;
   const {
     data: eligibleTiers = [],
@@ -166,6 +167,7 @@ export function PricingClient({ initialCatalog }: PricingClientProps) {
                   eligibleTier={eligibleById(tier.id)}
                   checkoutPending={checkoutPending && checkoutTier?.id === tier.id}
                   isSignedIn={isSignedIn}
+                  needsOnboarding={needsOnboarding}
                   onCheckout={checkout}
                   onSignIn={() => signIn()}
                   signInPending={signInPending}
@@ -195,6 +197,7 @@ export function PricingClient({ initialCatalog }: PricingClientProps) {
                     eligibleTier={eligibleById(tier.id)}
                     checkoutPending={checkoutPending && checkoutTier?.id === tier.id}
                     isSignedIn={isSignedIn}
+                    needsOnboarding={needsOnboarding}
                     onCheckout={checkout}
                     onSignIn={() => signIn()}
                     signInPending={signInPending}
