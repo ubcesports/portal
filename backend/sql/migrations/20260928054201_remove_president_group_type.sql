@@ -52,30 +52,15 @@ CREATE TYPE group_type_old AS ENUM (
 
 ALTER TABLE user_groups
     ALTER COLUMN "group" TYPE group_type_old
-        USING (
-            CASE "group"::text
-                WHEN 'board' THEN 'president'
-                ELSE "group"::text
-            END
-        )::group_type_old;
+        USING "group"::text::group_type_old;
 
 ALTER TABLE membership_tiers
     ALTER COLUMN "group" TYPE group_type_old
-        USING (
-            CASE "group"::text
-                WHEN 'board' THEN 'president'
-                ELSE "group"::text
-            END
-        )::group_type_old;
+        USING "group"::text::group_type_old;
 
 ALTER TABLE transactions
     ALTER COLUMN group_at_purchase TYPE group_type_old
-        USING (
-            CASE group_at_purchase::text
-                WHEN 'board' THEN 'president'
-                ELSE group_at_purchase::text
-            END
-        )::group_type_old;
+        USING group_at_purchase::text::group_type_old;
 
 DROP TYPE IF EXISTS group_type CASCADE;
 ALTER TYPE group_type_old RENAME TO group_type;

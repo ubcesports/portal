@@ -88,7 +88,30 @@ ALTER TABLE user_groups
         CASE "group"::text
             WHEN 'central_director' THEN 'director'
             WHEN 'game_director' THEN 'director'
+            WHEN 'president' THEN 'board'
             ELSE "group"::text
+        END
+    )::group_type_old;
+
+ALTER TABLE membership_tiers
+    ALTER COLUMN "group" TYPE group_type_old
+    USING (
+        CASE "group"::text
+            WHEN 'central_director' THEN 'director'
+            WHEN 'game_director' THEN 'director'
+            WHEN 'president' THEN 'board'
+            ELSE "group"::text
+        END
+    )::group_type_old;
+
+ALTER TABLE transactions
+    ALTER COLUMN group_at_purchase TYPE group_type_old
+    USING (
+        CASE group_at_purchase::text
+            WHEN 'central_director' THEN 'director'
+            WHEN 'game_director' THEN 'director'
+            WHEN 'president' THEN 'board'
+            ELSE group_at_purchase::text
         END
     )::group_type_old;
 
