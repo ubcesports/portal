@@ -240,6 +240,26 @@ func (s *AdminService) UpdateExecProfile(ctx context.Context, actorId string, ta
 	nullDisplayGroup, err := toNullExecDisplayGroupType(displayGroup)
 	if err != nil {
 		err = fmt.Errorf("%w: invalid display group", ErrValidation)
+		outcome := db.AdminAuditOutcomeTypeFailed
+		description := fmt.Sprintf("Failed to update exec profile for user %s", targetId)
+
+		auditErr := s.createAdminAuditLog(ctx, s.adminRepository, AdminAuditLogInput{
+			ActorUserID:  actorId,
+			Action:       "exec_profile.updated",
+			TargetUserID: targetId,
+			Outcome:      outcome,
+			RequestID:    requestId,
+			Description:  description,
+		})
+
+		if auditErr != nil {
+			if err != nil {
+				return db.GetExecProfileByUserIDRow{}, errors.Join(err, auditErr)
+			}
+			return db.GetExecProfileByUserIDRow{}, auditErr
+		}
+
+		return db.GetExecProfileByUserIDRow{}, err
 	}
 
 	updatedProfile, err := s.adminRepository.UpdateExecProfile(ctx, targetId, title, displayOrder, nullDisplayGroup)
