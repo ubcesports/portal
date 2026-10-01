@@ -27,7 +27,7 @@ CREATE TABLE exec_profile (
 );
 
 CREATE TABLE exec_social_link (
-    user_id UUID NOT NULL REFERENCES exec_profile(user_id),
+    user_id UUID NOT NULL REFERENCES exec_profile(user_id) ON DELETE CASCADE,
     platform exec_social_platform_type NOT NULL,
     url TEXT NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

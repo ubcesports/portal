@@ -97,8 +97,7 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.Use(auth.RequireAuth(params.Limen))
 		r.Use(auth.RequireExecGroup(params.AdminRepository))
 
-		r.Post("/exec-profile/social-links", params.ExecProfileHandler.AddExecSocialLink)
-		r.Patch("/exec-profile/social-links", params.ExecProfileHandler.UpdateExecSocialLink)
+		r.Put("/exec-profile/social-links", params.ExecProfileHandler.UpdateExecSocialLink)
 		r.Delete("/exec-profile/social-links", params.ExecProfileHandler.DeleteExecSocialLink)
 		r.Patch("/exec-profile/title", params.ExecProfileHandler.UpdateExecProfileTitle)
 	})

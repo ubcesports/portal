@@ -18,6 +18,16 @@ const (
 	GroupPresident       GroupType = "president"
 )
 
+type ExecDisplayGroupType string
+
+const (
+	ExecDisplayGroupTypePresident       ExecDisplayGroupType = "president"
+	ExecDisplayGroupTypeBoard           ExecDisplayGroupType = "board"
+	ExecDisplayGroupTypeCentralDirector ExecDisplayGroupType = "central_director"
+	ExecDisplayGroupTypeGameDirector    ExecDisplayGroupType = "game_director"
+	ExecDisplayGroupTypeExecutive       ExecDisplayGroupType = "executive"
+)
+
 type TransactionStatusType string
 
 const (

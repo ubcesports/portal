@@ -745,7 +745,7 @@ func (s *AdminService) applyGroupUpdates(
 		}
 
 		if hasExecGroup && !hasExecProfile {
-			store.CreateExecProfile(ctx, user.ID.String(), pgtype.Text{
+			err := store.CreateExecProfile(ctx, user.ID.String(), pgtype.Text{
 				String: "Executive",
 				Valid:  true,
 			}, pgtype.Int4{
@@ -755,6 +755,9 @@ func (s *AdminService) applyGroupUpdates(
 				ExecDisplayGroupType: defaultDisplayGroupType[group],
 				Valid:                true,
 			})
+			if err != nil {
+				return nil, auditable(actionGroupAdded, "Failed to add group: "+err.Error(), err)
+			}
 		}
 
 		current[group] = struct{}{}
@@ -788,11 +791,13 @@ func (s *AdminService) applyGroupUpdates(
 
 		hasExecProfile, err := store.HasExecProfile(ctx, user.ID.String())
 		if err != nil {
-			return nil, auditable(actionGroupRemoved, "Failed to add group: "+err.Error(), err)
+			return nil, auditable(actionGroupRemoved, "Failed to remove group: "+err.Error(), err)
 		}
 
 		if !hasExecGroup && hasExecProfile {
-			store.RemoveExecProfile(ctx, user.ID.String())
+			if err := store.RemoveExecProfile(ctx, user.ID.String()); err != nil {
+				return nil, auditable(actionGroupRemoved, "Failed to remove group: "+err.Error(), err)
+			}
 		}
 
 		delete(current, group)
@@ -1008,8 +1013,7 @@ func isValidGroup(group db.GroupType) bool {
 		db.GroupTypeCompetitiveTeam,
 		db.GroupTypeExecutive,
 		db.GroupTypeDirector,
-		db.GroupTypeBoard,
-		db.GroupTypePresident:
+		db.GroupTypeBoard:
 		return true
 	default:
 		return false

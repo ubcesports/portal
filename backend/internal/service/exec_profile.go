@@ -37,13 +37,6 @@ func (s *ExecProfileService) GetExecProfiles(ctx context.Context) ([]*dto.ExecPr
 	return execProfiles, nil
 }
 
-func (s *ExecProfileService) AddExecSocialLink(ctx context.Context, userId string, platform db.ExecSocialPlatformType, url string) error {
-	if err := s.execProfileRepository.AddExecSocialLink(ctx, userId, platform, url); err != nil {
-		return fmt.Errorf("add exec social link: %w", err)
-	}
-	return nil
-}
-
 func (s *ExecProfileService) UpdateExecSocialLink(ctx context.Context, userId string, platform db.ExecSocialPlatformType, url string) error {
 	if err := s.execProfileRepository.UpdateExecSocialLink(ctx, userId, platform, url); err != nil {
 		return fmt.Errorf("update exec social link: %w", err)
@@ -72,8 +65,12 @@ func (s *ExecProfileService) UpdateExecProfileTitle(ctx context.Context, userId 
 
 func buildExecProfile(row db.GetExecProfilesRow) (*dto.ExecProfileDTO, error) {
 	// Unmarshal the social links JSON into a slice of ExecProfileSocialLinkDTO
+	socialLinksJSON, err := json.Marshal(row.SocialLinks)
+	if err != nil {
+		return nil, fmt.Errorf("marshal social links: %w", err)
+	}
 	var socialLinks []dto.ExecProfileSocialLinkDTO
-	if err := json.Unmarshal(row.SocialLinks, &socialLinks); err != nil {
+	if err := json.Unmarshal(socialLinksJSON, &socialLinks); err != nil {
 		return nil, fmt.Errorf("unmarshal social links: %w", err)
 	}
 
@@ -82,7 +79,7 @@ func buildExecProfile(row db.GetExecProfilesRow) (*dto.ExecProfileDTO, error) {
 		FullName:     row.FullName,
 		AvatarURL:    util.TextPointer(row.AvatarUrl),
 		Title:        row.Title,
-		DisplayGroup: dto.GroupType(row.DisplayGroup),
+		DisplayGroup: dto.ExecDisplayGroupType(row.DisplayGroup),
 		SocialLinks:  socialLinks,
 	}
 

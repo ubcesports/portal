@@ -57,68 +57,9 @@ func (h *ExecProfileHandler) GetExecProfiles(w http.ResponseWriter, r *http.Requ
 }
 
 /*
-Adds a social link to the executive profile of the currently authenticated user.
+Updates an existing social link in the executive profile of the currently authenticated user, or adds one if it doesn't exist.
 
-API URL: POST /exec-profile/social-links
-
-Args (query params):
-
-	platform: the social media platform (e.g., "instagram", "linkedin") for the link.
-	url: the URL of the social media profile to be added.
-
-Returns:
-
-	Success response (HTTP 200) and message
-
-Raises:
-
-	400: invalid request parameters
-	401: unauthorized user
-	500: unable to add social link
-*/
-func (h *ExecProfileHandler) AddExecSocialLink(w http.ResponseWriter, r *http.Request) {
-	requestId := middleware.GetReqID(r.Context())
-
-	// Get current user id
-	userId, ok := util.CurrentUserID(r)
-	if !ok {
-		util.WriteApiResponse(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", requestId)
-		return
-	}
-
-	var request dto.ExecProfileSocialLinkDTO
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body. Please try again", requestId)
-	}
-
-	if request.Platform == "" || request.URL == "" {
-		util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "Missing required fields: platform and url are required", requestId)
-		return
-	}
-
-	err := h.execProfileService.AddExecSocialLink(
-		r.Context(),
-		userId,
-		db.ExecSocialPlatformType(request.Platform),
-		request.URL,
-	)
-
-	if err != nil {
-		slog.ErrorContext(r.Context(), "unable to add social link",
-			"error", err,
-			"request_id", middleware.GetReqID(r.Context()),
-		)
-		util.WriteApiResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to add social link", requestId)
-		return
-	}
-
-	util.WriteApiResponse(w, http.StatusOK, "SUCCESS", "Social link added successfully", requestId)
-}
-
-/*
-Updates an existing social link in the executive profile of the currently authenticated user.
-
-API URL: PATCH /exec-profile/social-links
+API URL: PUT /exec-profile/social-links
 
 Args (query params):
 
@@ -284,8 +225,8 @@ func (h *ExecProfileHandler) UpdateExecProfileTitle(w http.ResponseWriter, r *ht
 	Private functions
 */
 
-func groupExecProfilesByDisplayGroup(execProfiles []*dto.ExecProfileDTO) map[dto.GroupType][]*dto.ExecProfileDTO {
-	groupedProfiles := make(map[dto.GroupType][]*dto.ExecProfileDTO)
+func groupExecProfilesByDisplayGroup(execProfiles []*dto.ExecProfileDTO) map[dto.ExecDisplayGroupType][]*dto.ExecProfileDTO {
+	groupedProfiles := make(map[dto.ExecDisplayGroupType][]*dto.ExecProfileDTO)
 	for _, profile := range execProfiles {
 		groupedProfiles[profile.DisplayGroup] = append(groupedProfiles[profile.DisplayGroup], profile)
 	}

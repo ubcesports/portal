@@ -4,7 +4,7 @@ type ExecProfileDTO struct {
 	FullName     string                     `json:"full_name"`
 	AvatarURL    *string                    `json:"avatar_url"`
 	Title        string                     `json:"title"`
-	DisplayGroup GroupType                  `json:"display_group"`
+	DisplayGroup ExecDisplayGroupType       `json:"display_group"`
 	SocialLinks  []ExecProfileSocialLinkDTO `json:"social_links"`
 }
 

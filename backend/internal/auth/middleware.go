@@ -97,15 +97,18 @@ func RequireExecGroup(checker ExecGroupChecker) func(http.Handler) http.Handler 
 			userID, ok := session.User.ID.(string)
 			if !ok || userID == "" {
 				writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
+				return
 			}
 
 			hasExecGroup, err := checker.HasExecGroup(r.Context(), userID)
 			if err != nil {
 				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to verify executive group")
+				return
 			}
 
 			if !hasExecGroup {
 				writeError(w, http.StatusForbidden, "FORBIDDEN", "Forbidden")
+				return
 			}
 
 			next.ServeHTTP(w, r)

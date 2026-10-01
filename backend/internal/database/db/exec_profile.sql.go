@@ -11,23 +11,8 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const addExecSocialLink = `-- name: AddExecSocialLink :exec
-INSERT INTO exec_social_link (user_id, platform, url)
-VALUES ($1, $2, $3)
-`
-
-type AddExecSocialLinkParams struct {
-	UserID   pgtype.UUID
-	Platform ExecSocialPlatformType
-	Url      string
-}
-
-func (q *Queries) AddExecSocialLink(ctx context.Context, arg AddExecSocialLinkParams) error {
-	_, err := q.db.Exec(ctx, addExecSocialLink, arg.UserID, arg.Platform, arg.Url)
-	return err
-}
-
 const deleteExecSocialLink = `-- name: DeleteExecSocialLink :exec
+
 DELETE FROM exec_social_link 
 WHERE user_id = $1 AND platform = $2
 `
@@ -37,6 +22,9 @@ type DeleteExecSocialLinkParams struct {
 	Platform ExecSocialPlatformType
 }
 
+// UPDATE exec_social_link
+// SET url = $3, updated_at = NOW()
+// WHERE user_id = $1 AND platform = $2;
 func (q *Queries) DeleteExecSocialLink(ctx context.Context, arg DeleteExecSocialLinkParams) error {
 	_, err := q.db.Exec(ctx, deleteExecSocialLink, arg.UserID, arg.Platform)
 	return err
@@ -56,8 +44,9 @@ SELECT
                 'platform', s.platform,
                 'url', s.url
             )
-        ), '[]'
-    )::json AS social_links
+        ) FILTER (WHERE s.platform IS NOT NULL),
+        '[]'::json
+    ) AS social_links
 FROM exec_profile e
 JOIN users u ON e.user_id = u.id
 LEFT JOIN exec_social_link s ON e.user_id = s.user_id
@@ -72,7 +61,7 @@ type GetExecProfilesRow struct {
 	DisplayGroup ExecDisplayGroupType
 	FullName     string
 	AvatarUrl    pgtype.Text
-	SocialLinks  []byte
+	SocialLinks  interface{}
 }
 
 func (q *Queries) GetExecProfiles(ctx context.Context) ([]GetExecProfilesRow, error) {
@@ -120,9 +109,10 @@ func (q *Queries) UpdateExecProfileTitle(ctx context.Context, arg UpdateExecProf
 }
 
 const updateExecSocialLink = `-- name: UpdateExecSocialLink :exec
-UPDATE exec_social_link
-SET url = $3, updated_at = NOW()
-WHERE user_id = $1 AND platform = $2
+INSERT INTO exec_social_link (user_id, platform, url)
+VALUES ($1, $2, $3)
+ON CONFLICT (user_id, platform)
+DO UPDATE SET url = EXCLUDED.url, updated_at = NOW()
 `
 
 type UpdateExecSocialLinkParams struct {

@@ -38,19 +38,6 @@ func (r *ExecProfileRepository) UpdateExecProfileByUserID(ctx context.Context, u
 	return updated_profile, nil
 }
 
-func (r *ExecProfileRepository) AddExecSocialLink(ctx context.Context, userId string, platform db.ExecSocialPlatformType, url string) error {
-	pgUserId, err := util.GetValidatedUUID(userId)
-	if err != nil {
-		return err
-	}
-
-	return r.store.AddExecSocialLink(ctx, db.AddExecSocialLinkParams{
-		UserID:   pgUserId,
-		Platform: platform,
-		Url:      url,
-	})
-}
-
 func (r *ExecProfileRepository) UpdateExecSocialLink(ctx context.Context, userId string, platform db.ExecSocialPlatformType, url string) error {
 	pgUserId, err := util.GetValidatedUUID(userId)
 	if err != nil {

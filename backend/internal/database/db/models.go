@@ -153,7 +153,6 @@ const (
 	GroupTypeExecutive       GroupType = "executive"
 	GroupTypeDirector        GroupType = "director"
 	GroupTypeBoard           GroupType = "board"
-	GroupTypePresident       GroupType = "president"
 )
 
 func (e *GroupType) Scan(src interface{}) error {
