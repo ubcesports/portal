@@ -29,6 +29,9 @@ func (r *ExecProfileRepository) UpdateExecProfileByUserID(ctx context.Context, u
 		UserID: pgUserId,
 		Title:  title,
 	})
+	if err != nil {
+		return db.GetExecProfileByUserIDRow{}, err
+	}
 
 	updated_profile, err := r.store.GetExecProfileByUserID(ctx, pgUserId)
 	if err != nil {

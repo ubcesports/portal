@@ -237,9 +237,15 @@ func (s *AdminService) GetUserByID(ctx context.Context, userId string) (*dto.Pro
 }
 
 func (s *AdminService) UpdateExecProfile(ctx context.Context, actorId string, targetId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullGroupType, requestId string) (db.GetExecProfileByUserIDRow, error) {
-	nullDisplayGroup := toNullExecDisplayGroupType(displayGroup)
+	nullDisplayGroup, err := toNullExecDisplayGroupType(displayGroup)
+	if err != nil {
+		err = fmt.Errorf("%w: invalid display group", ErrValidation)
+	}
 
 	updatedProfile, err := s.adminRepository.UpdateExecProfile(ctx, targetId, title, displayOrder, nullDisplayGroup)
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = fmt.Errorf("%w: exec profile not found", ErrNotFound)
+	}
 
 	description := fmt.Sprintf("Updated exec profile for user %s", targetId)
 	outcome := db.AdminAuditOutcomeTypeSuccess
@@ -1259,12 +1265,18 @@ func (s *AdminService) getAdminAuditLogs(ctx context.Context, params db.GetAdmin
 	return logs, nil
 }
 
-func toNullExecDisplayGroupType(value db.NullGroupType) db.NullExecDisplayGroupType {
+func toNullExecDisplayGroupType(value db.NullGroupType) (db.NullExecDisplayGroupType, error) {
 	if !value.Valid {
-		return db.NullExecDisplayGroupType{}
+		return db.NullExecDisplayGroupType{}, ErrValidation
 	}
+
+	execDisplayGroupType := defaultDisplayGroupType[value.GroupType]
+	if execDisplayGroupType == "" {
+		return db.NullExecDisplayGroupType{}, ErrValidation
+	}
+
 	return db.NullExecDisplayGroupType{
 		ExecDisplayGroupType: defaultDisplayGroupType[value.GroupType],
 		Valid:                true,
-	}
+	}, nil
 }
