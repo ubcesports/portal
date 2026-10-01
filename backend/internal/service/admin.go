@@ -1287,7 +1287,8 @@ func (s *AdminService) getAdminAuditLogs(ctx context.Context, params db.GetAdmin
 
 func toNullExecDisplayGroupType(value db.NullGroupType) (db.NullExecDisplayGroupType, error) {
 	if !value.Valid {
-		return db.NullExecDisplayGroupType{}, ErrValidation
+		// don't error here, since this covers for requests without a display group
+		return db.NullExecDisplayGroupType{}, nil
 	}
 
 	execDisplayGroupType := defaultDisplayGroupType[value.GroupType]
