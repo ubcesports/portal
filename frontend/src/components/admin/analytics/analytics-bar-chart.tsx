@@ -21,12 +21,12 @@ type AnalyticsBarChartProps = {
 function formatBucketLabel(periodStart: string, granularity: Granularity): string {
   const date = new Date(periodStart);
   if (granularity === "year") {
-    return date.toLocaleDateString("en", { year: "numeric" });
+    return date.toLocaleDateString("en", { year: "numeric", timeZone: "UTC" });
   }
   if (granularity === "month") {
-    return date.toLocaleDateString("en", { month: "short", year: "2-digit" });
+    return date.toLocaleDateString("en", { month: "short", year: "2-digit", timeZone: "UTC" });
   }
-  return date.toLocaleDateString("en", { month: "short", day: "numeric" });
+  return date.toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" });
 }
 
 /** Renders a responsive period bar chart with formatted axis values and tooltips. */

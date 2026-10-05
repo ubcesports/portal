@@ -95,7 +95,7 @@ WITH args AS (
         $6::boolean AS is_student
 )
 SELECT
-    date_trunc((SELECT granularity FROM args), t.created_at)::timestamptz AS bucket,
+    date_trunc((SELECT granularity FROM args), t.created_at, 'UTC')::timestamptz AS bucket,
     COUNT(*) AS count
 FROM transactions t
 JOIN membership_tiers mt ON mt.id = t.tier_id
@@ -164,7 +164,7 @@ WITH args AS (
         $7::purchase_type AS purchase_type
 )
 SELECT
-    date_trunc((SELECT granularity FROM args), t.created_at)::timestamptz AS bucket,
+    date_trunc((SELECT granularity FROM args), t.created_at, 'UTC')::timestamptz AS bucket,
     COALESCE(SUM(t.amount_paid_cents), 0)::bigint AS revenue_cents
 FROM transactions t
 JOIN membership_tiers mt ON mt.id = t.tier_id

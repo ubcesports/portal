@@ -96,7 +96,14 @@ func (s *AnalyticsService) GetMembershipsBoughtOverTime(
 	ctx context.Context,
 	filters AnalyticsFilters,
 ) ([]dto.MembershipsBoughtPointDTO, error) {
-	now := time.Now().UTC()
+	return s.getMembershipsBoughtOverTime(ctx, filters, time.Now().UTC())
+}
+
+func (s *AnalyticsService) getMembershipsBoughtOverTime(
+	ctx context.Context,
+	filters AnalyticsFilters,
+	now time.Time,
+) ([]dto.MembershipsBoughtPointDTO, error) {
 	fromDate := resolveFromDate(filters, now)
 
 	rows, err := s.analyticsRepo.GetMembershipsBoughtOverTime(ctx, db.GetMembershipsBoughtOverTimeParams{
@@ -139,7 +146,14 @@ func (s *AnalyticsService) GetRevenueOverTime(
 	ctx context.Context,
 	filters AnalyticsFilters,
 ) ([]dto.RevenuePointDTO, error) {
-	now := time.Now().UTC()
+	return s.getRevenueOverTime(ctx, filters, time.Now().UTC())
+}
+
+func (s *AnalyticsService) getRevenueOverTime(
+	ctx context.Context,
+	filters AnalyticsFilters,
+	now time.Time,
+) ([]dto.RevenuePointDTO, error) {
 	fromDate := resolveFromDate(filters, now)
 
 	rows, err := s.analyticsRepo.GetRevenueOverTime(ctx, db.GetRevenueOverTimeParams{
@@ -179,11 +193,12 @@ func (s *AnalyticsService) GetRevenueOverTime(
 // ExportCSV zips the two time series together by period start so the CSV has
 // one row per bucket with both the membership count and the revenue.
 func (s *AnalyticsService) ExportCSV(ctx context.Context, filters AnalyticsFilters) ([]AnalyticsExportRow, error) {
-	memberships, err := s.GetMembershipsBoughtOverTime(ctx, filters)
+	now := time.Now().UTC()
+	memberships, err := s.getMembershipsBoughtOverTime(ctx, filters, now)
 	if err != nil {
 		return nil, err
 	}
-	revenue, err := s.GetRevenueOverTime(ctx, filters)
+	revenue, err := s.getRevenueOverTime(ctx, filters, now)
 	if err != nil {
 		return nil, err
 	}
