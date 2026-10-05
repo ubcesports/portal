@@ -31,10 +31,13 @@ const COMPACT_NUMBER_FORMAT = new Intl.NumberFormat("en", {
 
 const NUMBER_FORMAT = new Intl.NumberFormat("en");
 
+/** Formats cents as Canadian dollars rounded to whole dollars using the en-CA locale. */
 export const formatCentsAsCurrency = (cents: number): string => CURRENCY_FORMAT.format(cents / 100);
 
+/** Formats a number in English compact notation with at most one fractional digit. */
 export const formatCompactNumber = (value: number): string => COMPACT_NUMBER_FORMAT.format(value);
 
+/** Formats a number with English grouping and default Intl fractional precision. */
 export const formatNumber = (value: number): string => NUMBER_FORMAT.format(value);
 
 export function getInitials(name: string, email: string): string {

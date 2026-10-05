@@ -40,10 +40,14 @@ type AnalyticsService struct {
 	analyticsRepo *repository.AnalyticsRepository
 }
 
+// NewAnalyticsService creates an analytics service backed by the given repository.
 func NewAnalyticsService(analyticsRepo *repository.AnalyticsRepository) *AnalyticsService {
 	return &AnalyticsService{analyticsRepo: analyticsRepo}
 }
 
+// GetSummary returns current active memberships and all-time revenue and purchasers.
+// Time-range filters are ignored; purchase type applies only to revenue and
+// unique purchasers. Repository errors are returned to the caller.
 func (s *AnalyticsService) GetSummary(ctx context.Context, filters AnalyticsFilters) (*dto.AnalyticsSummaryDTO, error) {
 	programName := optionalText(filters.ProgramName)
 	isStudent := optionalBool(filters.IsStudent)
@@ -85,11 +89,21 @@ func (s *AnalyticsService) GetSummary(ctx context.Context, filters AnalyticsFilt
 	}, nil
 }
 
+// GetMembershipsBoughtOverTime returns completed purchase counts by period,
+// filling missing buckets with zero. Purchase type is ignored. Since-inception
+// ranges start at the first matching purchase and are empty if none exist.
 func (s *AnalyticsService) GetMembershipsBoughtOverTime(
 	ctx context.Context,
 	filters AnalyticsFilters,
 ) ([]dto.MembershipsBoughtPointDTO, error) {
-	now := time.Now().UTC()
+	return s.getMembershipsBoughtOverTime(ctx, filters, time.Now().UTC())
+}
+
+func (s *AnalyticsService) getMembershipsBoughtOverTime(
+	ctx context.Context,
+	filters AnalyticsFilters,
+	now time.Time,
+) ([]dto.MembershipsBoughtPointDTO, error) {
 	fromDate := resolveFromDate(filters, now)
 
 	rows, err := s.analyticsRepo.GetMembershipsBoughtOverTime(ctx, db.GetMembershipsBoughtOverTimeParams{
@@ -125,11 +139,21 @@ func (s *AnalyticsService) GetMembershipsBoughtOverTime(
 	return points, nil
 }
 
+// GetRevenueOverTime returns completed payment totals in cents by period,
+// filling missing buckets with zero. Since-inception ranges start at the first
+// matching payment and are empty if none exist.
 func (s *AnalyticsService) GetRevenueOverTime(
 	ctx context.Context,
 	filters AnalyticsFilters,
 ) ([]dto.RevenuePointDTO, error) {
-	now := time.Now().UTC()
+	return s.getRevenueOverTime(ctx, filters, time.Now().UTC())
+}
+
+func (s *AnalyticsService) getRevenueOverTime(
+	ctx context.Context,
+	filters AnalyticsFilters,
+	now time.Time,
+) ([]dto.RevenuePointDTO, error) {
 	fromDate := resolveFromDate(filters, now)
 
 	rows, err := s.analyticsRepo.GetRevenueOverTime(ctx, db.GetRevenueOverTimeParams{
@@ -169,11 +193,12 @@ func (s *AnalyticsService) GetRevenueOverTime(
 // ExportCSV zips the two time series together by period start so the CSV has
 // one row per bucket with both the membership count and the revenue.
 func (s *AnalyticsService) ExportCSV(ctx context.Context, filters AnalyticsFilters) ([]AnalyticsExportRow, error) {
-	memberships, err := s.GetMembershipsBoughtOverTime(ctx, filters)
+	now := time.Now().UTC()
+	memberships, err := s.getMembershipsBoughtOverTime(ctx, filters, now)
 	if err != nil {
 		return nil, err
 	}
-	revenue, err := s.GetRevenueOverTime(ctx, filters)
+	revenue, err := s.getRevenueOverTime(ctx, filters, now)
 	if err != nil {
 		return nil, err
 	}
@@ -251,6 +276,8 @@ func truncateToBucket(t time.Time, granularity string) time.Time {
 	}
 }
 
+// addBuckets shifts t by n calendar weeks, years, or months (the default).
+// Negative n moves backwards.
 func addBuckets(t time.Time, granularity string, n int) time.Time {
 	switch granularity {
 	case "week":
@@ -262,6 +289,7 @@ func addBuckets(t time.Time, granularity string, n int) time.Time {
 	}
 }
 
+// clampPeriods limits the requested period count to the inclusive range 1–520.
 func clampPeriods(periods int) int {
 	if periods < minAnalyticsPeriods {
 		return minAnalyticsPeriods
@@ -272,6 +300,7 @@ func clampPeriods(periods int) int {
 	return periods
 }
 
+// optionalText converts a string pointer to nullable database text; nil becomes NULL.
 func optionalText(value *string) pgtype.Text {
 	if value == nil {
 		return pgtype.Text{}
@@ -279,6 +308,7 @@ func optionalText(value *string) pgtype.Text {
 	return pgtype.Text{String: *value, Valid: true}
 }
 
+// optionalBool converts a bool pointer to a nullable database boolean; nil becomes NULL.
 func optionalBool(value *bool) pgtype.Bool {
 	if value == nil {
 		return pgtype.Bool{}
@@ -286,6 +316,8 @@ func optionalBool(value *bool) pgtype.Bool {
 	return pgtype.Bool{Bool: *value, Valid: true}
 }
 
+// optionalPurchaseType wraps a purchase type for database queries; nil becomes NULL.
+// The caller is responsible for validating non-nil values.
 func optionalPurchaseType(value *string) db.NullPurchaseType {
 	if value == nil {
 		return db.NullPurchaseType{}
@@ -293,6 +325,7 @@ func optionalPurchaseType(value *string) db.NullPurchaseType {
 	return db.NullPurchaseType{PurchaseType: db.PurchaseType(*value), Valid: true}
 }
 
+// toNullableTimestamptz converts a time pointer to a database timestamp; nil becomes NULL.
 func toNullableTimestamptz(t *time.Time) pgtype.Timestamptz {
 	if t == nil {
 		return pgtype.Timestamptz{}
@@ -300,6 +333,7 @@ func toNullableTimestamptz(t *time.Time) pgtype.Timestamptz {
 	return pgtype.Timestamptz{Time: *t, Valid: true}
 }
 
+// toTimestamptz wraps t as a non-null database timestamp.
 func toTimestamptz(t time.Time) pgtype.Timestamptz {
 	return pgtype.Timestamptz{Time: t, Valid: true}
 }

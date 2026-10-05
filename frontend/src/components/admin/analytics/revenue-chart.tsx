@@ -14,6 +14,7 @@ type RevenueChartProps = {
   isLoading: boolean;
 };
 
+/** Displays revenue by period in CAD, with loading and empty states. */
 export function RevenueChart({ data, granularity, isLoading }: RevenueChartProps) {
   return (
     <SurfacePanel className="flex flex-col gap-3 p-5">

@@ -23,6 +23,10 @@ import { SummaryCards } from "@/components/admin/analytics/summary-cards";
 import { MembershipsBoughtChart } from "@/components/admin/analytics/memberships-bought-chart";
 import { RevenueChart } from "@/components/admin/analytics/revenue-chart";
 
+/**
+ * Renders the admin analytics dashboard with shared filters, charts, and CSV export.
+ * Analytics queries are enabled after the admin check succeeds.
+ */
 export default function AnalyticsPage() {
   const { isAdmin, isProfilePending } = useRequireAdmin();
   const [filters, setFilters] = useState<AnalyticsFilters>(DEFAULT_ANALYTICS_FILTERS);
@@ -50,6 +54,7 @@ export default function AnalyticsPage() {
     },
   });
 
+  /** Merges changed filter fields while preserving the remaining selections. */
   const handleFiltersChange = (patch: Partial<AnalyticsFilters>) => {
     setFilters((current) => ({ ...current, ...patch }));
   };

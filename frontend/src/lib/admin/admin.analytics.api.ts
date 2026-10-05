@@ -6,6 +6,10 @@ import type {
   RevenuePoint,
 } from "@/lib/types/admin.analytics.types";
 
+/**
+ * Serializes analytics filters, preserving repeated tier IDs and explicit false student status.
+ * When includeTimeFrame is true, adds granularity and either periods or since_inception.
+ */
 export function buildAnalyticsParams(
   filters: AnalyticsFilters,
   includeTimeFrame: boolean,
@@ -41,6 +45,10 @@ export function buildAnalyticsParams(
   return params;
 }
 
+/**
+ * Fetches current/all-time summary metrics, omitting time-range parameters.
+ * The optional signal can cancel the request; request failures propagate to the caller.
+ */
 export async function fetchAnalyticsSummary(
   filters: AnalyticsFilters,
   signal?: AbortSignal,
@@ -53,6 +61,10 @@ export async function fetchAnalyticsSummary(
   return response.data;
 }
 
+/**
+ * Fetches completed purchase counts for the selected time range, defaulting null data to [].
+ * The optional signal can cancel the request; request failures propagate to the caller.
+ */
 export async function fetchMembershipsBoughtOverTime(
   filters: AnalyticsFilters,
   signal?: AbortSignal,
@@ -68,6 +80,10 @@ export async function fetchMembershipsBoughtOverTime(
   return response.data ?? [];
 }
 
+/**
+ * Fetches revenue in cents for the selected time range, defaulting null data to [].
+ * The optional signal can cancel the request; request failures propagate to the caller.
+ */
 export async function fetchRevenueOverTime(
   filters: AnalyticsFilters,
   signal?: AbortSignal,
@@ -80,6 +96,10 @@ export async function fetchRevenueOverTime(
   return response.data ?? [];
 }
 
+/**
+ * Fetches a CSV blob containing membership counts and revenue for the selected filters.
+ * The caller handles downloading it. The optional signal can cancel the request.
+ */
 export async function exportAnalyticsCSV(
   filters: AnalyticsFilters,
   signal?: AbortSignal,

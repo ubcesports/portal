@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { ActionButton } from "@/components/action-button";
 import { ToolbarContainer } from "@/components/toolbar/toolbar-container";
@@ -29,6 +30,7 @@ type AnalyticsFiltersToolbarProps = {
   onExport: () => void;
 };
 
+/** Maps the optional student boolean to the select control’s yes, no, or all value. */
 function getIsStudentFilterValue(filters: AnalyticsFilters): IsStudentFilter {
   if (filters.isStudent === true) {
     return "yes";
@@ -39,6 +41,7 @@ function getIsStudentFilterValue(filters: AnalyticsFilters): IsStudentFilter {
   return "all";
 }
 
+/** Reports whether any selection differs from the default analytics filters. */
 function hasActiveFilters(filters: AnalyticsFilters) {
   return (
     filters.programName !== undefined ||
@@ -51,6 +54,7 @@ function hasActiveFilters(filters: AnalyticsFilters) {
   );
 }
 
+/** Renders analytics filters and reset/export actions, limiting tiers to the selected program. */
 export function AnalyticsFiltersToolbar({
   filters,
   programOptions,
@@ -60,6 +64,14 @@ export function AnalyticsFiltersToolbar({
   onReset,
   onExport,
 }: AnalyticsFiltersToolbarProps) {
+  const [periodsDraft, setPeriodsDraft] = useState(String(filters.periods));
+  const [previousPeriods, setPreviousPeriods] = useState(filters.periods);
+
+  if (filters.periods !== previousPeriods) {
+    setPreviousPeriods(filters.periods);
+    setPeriodsDraft(String(filters.periods));
+  }
+
   const tierOptionsForProgram = filters.programName
     ? tierOptions.filter((tier) => tier.program_name === filters.programName)
     : tierOptions;
@@ -130,11 +142,21 @@ export function AnalyticsFiltersToolbar({
               type="number"
               min={MIN_PERIODS}
               max={MAX_PERIODS}
-              value={filters.periods}
+              value={periodsDraft}
               onChange={(event) => {
-                const parsed = Number(event.target.value);
+                const value = event.target.value;
+                setPeriodsDraft(value);
+                if (value === "") {
+                  return;
+                }
+                const parsed = Number(value);
                 if (Number.isFinite(parsed)) {
                   onChange({ periods: Math.min(MAX_PERIODS, Math.max(MIN_PERIODS, parsed)) });
+                }
+              }}
+              onBlur={() => {
+                if (periodsDraft === "") {
+                  setPeriodsDraft(String(filters.periods));
                 }
               }}
               className="h-10 w-32 border border-brand-border bg-brand-surface px-3 text-sm text-brand-text"

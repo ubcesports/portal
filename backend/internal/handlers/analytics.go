@@ -19,6 +19,7 @@ type AnalyticsHandler struct {
 	analyticsService *service.AnalyticsService
 }
 
+// NewAnalyticsHandler creates an HTTP handler backed by the analytics service.
 func NewAnalyticsHandler(analyticsService *service.AnalyticsService) *AnalyticsHandler {
 	return &AnalyticsHandler{analyticsService: analyticsService}
 }
@@ -221,6 +222,9 @@ func (h *AnalyticsHandler) ExportCSV(w http.ResponseWriter, r *http.Request) {
 	Private functions
 */
 
+// parseAnalyticsFilters validates query filters, returning an error for invalid values.
+// When requireGranularity is true, it also parses the time range, defaulting to
+// 12 weekly periods; since_inception=true bypasses periods parsing.
 func parseAnalyticsFilters(r *http.Request, requireGranularity bool) (service.AnalyticsFilters, error) {
 	query := r.URL.Query()
 	filters := service.AnalyticsFilters{

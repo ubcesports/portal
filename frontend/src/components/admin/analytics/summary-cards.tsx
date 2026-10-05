@@ -9,6 +9,7 @@ type StatTileProps = {
   isLoading: boolean;
 };
 
+/** Displays a labelled summary value or a loading indicator. */
 function StatTile({ label, value, isLoading }: StatTileProps) {
   return (
     <SurfacePanel className="flex flex-col gap-2 p-5">
@@ -27,6 +28,10 @@ type SummaryCardsProps = {
   isLoading: boolean;
 };
 
+/**
+ * Displays active memberships, all-time revenue, and unique purchasers.
+ * Missing summary values default to zero when loading has finished.
+ */
 export function SummaryCards({ summary, isLoading }: SummaryCardsProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-3">

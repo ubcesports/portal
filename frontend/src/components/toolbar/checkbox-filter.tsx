@@ -15,6 +15,10 @@ type CheckboxFilterProps<T extends string> = {
   helpText?: string;
 };
 
+/**
+ * Renders a controlled checkbox filter with optional help text.
+ * An empty selection represents all options.
+ */
 export function CheckboxFilter<T extends string>({
   label,
   options,

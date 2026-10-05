@@ -13,10 +13,13 @@ type AnalyticsRepository struct {
 	store *db.Queries
 }
 
+// NewAnalyticsRepository creates a repository using the supplied pool and queries.
 func NewAnalyticsRepository(pool *pgxpool.Pool, store *db.Queries) *AnalyticsRepository {
 	return &AnalyticsRepository{pool: pool, store: store}
 }
 
+// GetActiveMembershipsCount counts matching, uncancelled memberships active now.
+// Student status is taken from the current user record.
 func (r *AnalyticsRepository) GetActiveMembershipsCount(
 	ctx context.Context,
 	params db.GetActiveMembershipsCountParams,
@@ -28,6 +31,8 @@ func (r *AnalyticsRepository) GetActiveMembershipsCount(
 	return count, nil
 }
 
+// GetAllTimeRevenueCents sums matching completed payments in cents across all time.
+// Student status is evaluated at purchase time.
 func (r *AnalyticsRepository) GetAllTimeRevenueCents(
 	ctx context.Context,
 	params db.GetAllTimeRevenueCentsParams,
@@ -39,6 +44,7 @@ func (r *AnalyticsRepository) GetAllTimeRevenueCents(
 	return cents, nil
 }
 
+// GetUniqueMembersCount counts distinct users with matching completed purchases.
 func (r *AnalyticsRepository) GetUniqueMembersCount(
 	ctx context.Context,
 	params db.GetUniqueMembersCountParams,
@@ -50,6 +56,9 @@ func (r *AnalyticsRepository) GetUniqueMembersCount(
 	return count, nil
 }
 
+// GetMembershipsBoughtOverTime counts matching completed purchases by period.
+// The lower date bound is inclusive, the upper bound is exclusive, and periods
+// without purchases are omitted. Student status is evaluated at purchase time.
 func (r *AnalyticsRepository) GetMembershipsBoughtOverTime(
 	ctx context.Context,
 	params db.GetMembershipsBoughtOverTimeParams,
@@ -61,6 +70,9 @@ func (r *AnalyticsRepository) GetMembershipsBoughtOverTime(
 	return rows, nil
 }
 
+// GetRevenueOverTime sums matching completed payments in cents by period.
+// The lower date bound is inclusive, the upper bound is exclusive, and periods
+// without payments are omitted. Student status is evaluated at purchase time.
 func (r *AnalyticsRepository) GetRevenueOverTime(
 	ctx context.Context,
 	params db.GetRevenueOverTimeParams,
