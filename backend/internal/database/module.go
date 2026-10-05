@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"os"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -42,7 +41,12 @@ func provideDatabase(pool *pgxpool.Pool) *db.Queries {
 }
 
 func provideStdlibDB(lc fx.Lifecycle) (*sql.DB, error) {
-	sqlDB, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
+	databaseURL, err := connectionString()
+	if err != nil {
+		return nil, err
+	}
+
+	sqlDB, err := sql.Open("pgx", databaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("open authentication database connection: %w", err)
 	}
