@@ -6,6 +6,7 @@ import {
 } from "./admin.analytics.api";
 import type { AnalyticsFilters } from "@/lib/types/admin.analytics.types";
 
+/** Queries and caches summary metrics by filters; options.enabled defaults to true. */
 export function useAnalyticsSummary(filters: AnalyticsFilters, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["admin", "analytics", "summary", filters],
@@ -14,6 +15,7 @@ export function useAnalyticsSummary(filters: AnalyticsFilters, options?: { enabl
   });
 }
 
+/** Queries and caches purchase counts by filters; options.enabled defaults to true. */
 export function useMembershipsBoughtOverTime(
   filters: AnalyticsFilters,
   options?: { enabled?: boolean },
@@ -25,6 +27,7 @@ export function useMembershipsBoughtOverTime(
   });
 }
 
+/** Queries and caches revenue by filters; options.enabled defaults to true. */
 export function useRevenueOverTime(filters: AnalyticsFilters, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["admin", "analytics", "revenue-over-time", filters],

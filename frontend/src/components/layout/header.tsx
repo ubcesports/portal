@@ -43,6 +43,7 @@ function DropdownLink({
   );
 }
 
+/** Renders the expandable admin links for users, audit logs, and analytics. */
 function AdminMenuLinks() {
   return (
     <div className="border-t border-brand-border p-1.5">

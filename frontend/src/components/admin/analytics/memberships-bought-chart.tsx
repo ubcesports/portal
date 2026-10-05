@@ -13,6 +13,7 @@ type MembershipsBoughtChartProps = {
   isLoading: boolean;
 };
 
+/** Displays completed purchase counts by period, with loading and empty states. */
 export function MembershipsBoughtChart({
   data,
   granularity,

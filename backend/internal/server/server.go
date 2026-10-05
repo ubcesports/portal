@@ -34,7 +34,8 @@ type RouterParams struct {
 	Limen                *limen.Limen
 }
 
-// Add all new routes here
+// provideRouter builds the HTTP router with shared middleware and public,
+// authenticated, onboarded, and admin-only route groups.
 func provideRouter(params RouterParams) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)

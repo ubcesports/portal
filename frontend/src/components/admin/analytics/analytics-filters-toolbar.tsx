@@ -29,6 +29,7 @@ type AnalyticsFiltersToolbarProps = {
   onExport: () => void;
 };
 
+/** Maps the optional student boolean to the select control’s yes, no, or all value. */
 function getIsStudentFilterValue(filters: AnalyticsFilters): IsStudentFilter {
   if (filters.isStudent === true) {
     return "yes";
@@ -39,6 +40,7 @@ function getIsStudentFilterValue(filters: AnalyticsFilters): IsStudentFilter {
   return "all";
 }
 
+/** Reports whether any selection differs from the default analytics filters. */
 function hasActiveFilters(filters: AnalyticsFilters) {
   return (
     filters.programName !== undefined ||
@@ -51,6 +53,7 @@ function hasActiveFilters(filters: AnalyticsFilters) {
   );
 }
 
+/** Renders analytics filters and reset/export actions, limiting tiers to the selected program. */
 export function AnalyticsFiltersToolbar({
   filters,
   programOptions,

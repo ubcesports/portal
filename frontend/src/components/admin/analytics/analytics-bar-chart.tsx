@@ -17,6 +17,7 @@ type AnalyticsBarChartProps = {
   allowDecimals?: boolean;
 };
 
+/** Formats a bucket start in the browser time zone using a label for the granularity. */
 function formatBucketLabel(periodStart: string, granularity: Granularity): string {
   const date = new Date(periodStart);
   if (granularity === "year") {
@@ -28,6 +29,7 @@ function formatBucketLabel(periodStart: string, granularity: Granularity): strin
   return date.toLocaleDateString("en", { month: "short", day: "numeric" });
 }
 
+/** Renders a responsive period bar chart with formatted axis values and tooltips. */
 export function AnalyticsBarChart({
   data,
   granularity,
