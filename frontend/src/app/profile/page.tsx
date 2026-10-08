@@ -8,6 +8,7 @@ import { DetailRow } from "@/components/detail-row";
 import { BasePage } from "@/components/layout/base-page";
 import { MembershipHistoryItem } from "@/components/membership/membership-history-item";
 import { MembershipLoadError } from "@/components/membership/membership-load-error";
+import { ExecProfilePanel } from "@/components/profile/exec-profile-panel";
 import { StatusBadge } from "@/components/status-badge";
 import { SummaryTile } from "@/components/summary-tile";
 import { SurfacePanel } from "@/components/surface-panel";
@@ -92,6 +93,8 @@ export default function ProfilePage() {
   const activeMemberships = memberships?.filter(isActiveMembership) ?? [];
   const membershipHistory =
     memberships?.filter((membership) => !isActiveMembership(membership)) ?? [];
+  const isExecutive =
+    profile?.groups.some((group) => ["executive", "director", "board"].includes(group)) ?? false;
 
   const studentBadge = profile?.isStudent ? (
     <StatusBadge tone="success">Student</StatusBadge>
@@ -225,6 +228,8 @@ export default function ProfilePage() {
                     </div>
                   </SurfacePanel>
                 </div>
+
+                {isExecutive ? <ExecProfilePanel /> : null}
 
                 <div id="membership" className="mt-6 scroll-mt-28">
                   {membershipsPending ? (

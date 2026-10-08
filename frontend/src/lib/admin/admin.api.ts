@@ -9,6 +9,9 @@ import type {
   UsersResponse,
   AuditLogResponse,
   AddOfflineMembershipRequest,
+  AdminExecProfile,
+  AdminExecProfileResponse,
+  UpdateAdminExecProfileRequest,
 } from "@/lib/types/admin.types";
 import type { User } from "@/lib/types/user.types";
 import type { EligibleMembershipTier, Membership } from "../types/membership.types";
@@ -112,6 +115,29 @@ export async function updateUser(userId: string, body: UpdateUserRequest): Promi
   const response = await apiClient.patch<UserResponse>(`/admin/users/${userId}`, body);
 
   return response.data.user;
+}
+
+export async function fetchAdminExecProfile(
+  userId: string,
+  signal?: AbortSignal,
+): Promise<AdminExecProfile> {
+  const response = await apiClient.get<AdminExecProfileResponse>(`/admin/exec-profile/${userId}`, {
+    signal,
+  });
+
+  return response.data.exec_profile;
+}
+
+export async function updateAdminExecProfile(
+  userId: string,
+  body: UpdateAdminExecProfileRequest,
+): Promise<AdminExecProfile> {
+  const response = await apiClient.patch<AdminExecProfileResponse>(
+    `/admin/exec-profile/${userId}`,
+    body,
+  );
+
+  return response.data.exec_profile;
 }
 
 export async function exportUsersCSV(

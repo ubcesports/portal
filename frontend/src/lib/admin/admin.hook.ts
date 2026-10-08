@@ -8,6 +8,8 @@ import {
   fetchEligibleMembershipsForUser,
   addOfflineMembership,
   fetchAdminMembershipTierOptions,
+  fetchAdminExecProfile,
+  updateAdminExecProfile,
 } from "./admin.api";
 import type {
   AddOfflineMembershipRequest,
@@ -15,6 +17,7 @@ import type {
   AdminPagination,
   AppliedSearch,
   UpdateUserRequest,
+  UpdateAdminExecProfileRequest,
 } from "@/lib/types/admin.types";
 import type { User } from "@/lib/types/user.types";
 
@@ -101,6 +104,26 @@ export function useUpdateUser(userId: string) {
       if (body.cancel_membership_id) {
         queryClient.invalidateQueries({ queryKey: ["admin", "user", userId, "memberships"] });
       }
+    },
+  });
+}
+
+export function useAdminExecProfile(userId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["admin", "user", userId, "exec-profile"],
+    queryFn: ({ signal }) => fetchAdminExecProfile(userId, signal),
+    enabled: (options?.enabled ?? true) && Boolean(userId),
+    retry: false,
+  });
+}
+
+export function useUpdateAdminExecProfile(userId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (body: UpdateAdminExecProfileRequest) => updateAdminExecProfile(userId, body),
+    onSuccess: (profile) => {
+      queryClient.setQueryData(["admin", "user", userId, "exec-profile"], profile);
     },
   });
 }
