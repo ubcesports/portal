@@ -245,7 +245,7 @@ function ExecTitleForm({ initialTitle }: { initialTitle: string }) {
         loading={isSavingTitle}
         icon={<Save aria-hidden="true" className="size-4" />}
         loadingIcon={<Loader2 aria-hidden="true" className="size-4 animate-spin" />}
-        className="h-11 border-brand-primary bg-brand-primary hover:border-brand-primary-hover hover:bg-brand-primary-hover lg:mt-[1.625rem]"
+        className="h-11 border-brand-primary bg-brand-primary hover:border-brand-primary-hover hover:bg-brand-primary-hover lg:mt-6.5"
       >
         Save title
       </ActionButton>
