@@ -6,7 +6,7 @@ VALUES
     ('ssbm')
 ON CONFLICT (program_name) DO NOTHING;
 
-WITH tier_seed(title, description, benefits, limitations, slug, program_name, group_name, stripe_product_id, is_active) AS (
+WITH tier_seed(title, description, benefits, limitations, slug, program_name, group_name, expiration_type, stripe_product_id, is_active) AS (
     VALUES
         (
             'Day Pass',
@@ -18,6 +18,7 @@ WITH tier_seed(title, description, benefits, limitations, slug, program_name, gr
             'day',
             'general',
             'member',
+            'day'::membership_expiration_type,
             'prod_V02wba8GuTzBju',
             TRUE
         ),
@@ -35,6 +36,7 @@ WITH tier_seed(title, description, benefits, limitations, slug, program_name, gr
             'basic',
             'general',
             'member',
+            'year'::membership_expiration_type,
             'prod_V02v4khwaFRJVY',
             TRUE
         ),
@@ -50,6 +52,7 @@ WITH tier_seed(title, description, benefits, limitations, slug, program_name, gr
             'lounge',
             'general',
             'member',
+            'year'::membership_expiration_type,
             'prod_V02wxRTbZGE8m2',
             TRUE
         ),
@@ -64,6 +67,7 @@ WITH tier_seed(title, description, benefits, limitations, slug, program_name, gr
             'competitive_team',
             'general',
             'competitive_team',
+            'year'::membership_expiration_type,
             'prod_V02ywe6yuowM12',
             TRUE
         ),
@@ -77,6 +81,7 @@ WITH tier_seed(title, description, benefits, limitations, slug, program_name, gr
             'executive',
             'general',
             'executive',
+            'year'::membership_expiration_type,
             'prod_V02xxVt7nDTwbH',
             TRUE
         ),
@@ -92,6 +97,7 @@ WITH tier_seed(title, description, benefits, limitations, slug, program_name, gr
             'ssbm_semesterly',
             'ssbm',
             'member',
+            'semester'::membership_expiration_type,
             'prod_VDhEsBham751Ct',
             TRUE
         ),
@@ -106,6 +112,7 @@ WITH tier_seed(title, description, benefits, limitations, slug, program_name, gr
             'ssbm_yearly',
             'ssbm',
             'member',
+            'year'::membership_expiration_type,
             'prod_VDhEI2TOWQWxQ4',
             TRUE
         )
@@ -119,6 +126,7 @@ upserted_tiers AS (
         slug,
         program_id,
         "group",
+        expiration_type,
         stripe_product_id,
         is_active,
         updated_at
@@ -131,6 +139,7 @@ upserted_tiers AS (
         slug,
         mp.id,
         group_name::group_type,
+        expiration_type,
         stripe_product_id,
         is_active,
         NOW()
@@ -145,6 +154,7 @@ upserted_tiers AS (
         slug = EXCLUDED.slug,
         program_id = EXCLUDED.program_id,
         "group" = EXCLUDED."group",
+        expiration_type = EXCLUDED.expiration_type,
         is_active = EXCLUDED.is_active,
         updated_at = NOW()
     RETURNING id, slug
