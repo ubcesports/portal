@@ -236,10 +236,9 @@ func (s *AdminService) GetUserByID(ctx context.Context, userId string) (*dto.Pro
 	return &profile, nil
 }
 
-func (s *AdminService) UpdateExecProfile(ctx context.Context, actorId string, targetId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullGroupType, requestId string) (db.GetExecProfileByUserIDRow, error) {
-	nullDisplayGroup, err := toNullExecDisplayGroupType(displayGroup)
-	if err != nil {
-		err = fmt.Errorf("%w: invalid display group", ErrValidation)
+func (s *AdminService) UpdateExecProfile(ctx context.Context, actorId string, targetId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType, requestId string) (db.GetExecProfileByUserIDRow, error) {
+	if displayGroup.Valid && !isValidExecDisplayGroup(displayGroup.ExecDisplayGroupType) {
+		err := fmt.Errorf("%w: invalid display group", ErrValidation)
 		outcome := db.AdminAuditOutcomeTypeFailed
 		description := fmt.Sprintf("Failed to update exec profile for user %s", targetId)
 
@@ -262,7 +261,7 @@ func (s *AdminService) UpdateExecProfile(ctx context.Context, actorId string, ta
 		return db.GetExecProfileByUserIDRow{}, err
 	}
 
-	updatedProfile, err := s.adminRepository.UpdateExecProfile(ctx, targetId, title, displayOrder, nullDisplayGroup)
+	updatedProfile, err := s.adminRepository.UpdateExecProfile(ctx, targetId, title, displayOrder, displayGroup)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = fmt.Errorf("%w: exec profile not found", ErrNotFound)
 	}
@@ -1285,19 +1284,15 @@ func (s *AdminService) getAdminAuditLogs(ctx context.Context, params db.GetAdmin
 	return logs, nil
 }
 
-func toNullExecDisplayGroupType(value db.NullGroupType) (db.NullExecDisplayGroupType, error) {
-	if !value.Valid {
-		// don't error here, since this covers for requests without a display group
-		return db.NullExecDisplayGroupType{}, nil
+func isValidExecDisplayGroup(value db.ExecDisplayGroupType) bool {
+	switch value {
+	case db.ExecDisplayGroupTypePresident,
+		db.ExecDisplayGroupTypeBoard,
+		db.ExecDisplayGroupTypeCentralDirector,
+		db.ExecDisplayGroupTypeGameDirector,
+		db.ExecDisplayGroupTypeExecutive:
+		return true
+	default:
+		return false
 	}
-
-	execDisplayGroupType := defaultDisplayGroupType[value.GroupType]
-	if execDisplayGroupType == "" {
-		return db.NullExecDisplayGroupType{}, ErrValidation
-	}
-
-	return db.NullExecDisplayGroupType{
-		ExecDisplayGroupType: defaultDisplayGroupType[value.GroupType],
-		Valid:                true,
-	}, nil
 }

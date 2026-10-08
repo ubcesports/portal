@@ -48,12 +48,18 @@ BEGIN
           AND column_name = 'display_group'
     ) THEN
         ALTER TABLE exec_profile
+            ALTER COLUMN display_group DROP DEFAULT;
+
+        ALTER TABLE exec_profile
             ALTER COLUMN display_group TYPE TEXT
                 USING display_group::text;
+
+        ALTER TABLE exec_profile
+            ALTER COLUMN display_group SET DEFAULT 'executive';
     END IF;
 END $$;
 
-DROP TYPE IF EXISTS group_type CASCADE;
+DROP TYPE IF EXISTS group_type;
 ALTER TYPE group_type_new RENAME TO group_type;
 -- +goose StatementEnd
 
@@ -96,6 +102,21 @@ ALTER TABLE transactions
             END
         )::group_type_old;
 
-DROP TYPE IF EXISTS group_type CASCADE;
+ALTER TABLE exec_profile
+    ALTER COLUMN display_group DROP DEFAULT;
+
+ALTER TABLE exec_profile
+    ALTER COLUMN display_group TYPE group_type_old
+        USING (
+            CASE display_group::text
+                WHEN 'director' THEN 'game_director'
+                ELSE display_group::text
+            END
+        )::group_type_old;
+
+ALTER TABLE exec_profile
+    ALTER COLUMN display_group SET DEFAULT 'executive';
+
+DROP TYPE IF EXISTS group_type;
 ALTER TYPE group_type_old RENAME TO group_type;
 -- +goose StatementEnd

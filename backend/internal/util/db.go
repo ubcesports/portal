@@ -53,3 +53,13 @@ func ToNullGroupType(value *dto.GroupType) db.NullGroupType {
 		Valid:     true,
 	}
 }
+
+func ToNullExecDisplayGroupType(value *dto.ExecDisplayGroupType) db.NullExecDisplayGroupType {
+	if value == nil {
+		return db.NullExecDisplayGroupType{}
+	}
+	return db.NullExecDisplayGroupType{
+		ExecDisplayGroupType: db.ExecDisplayGroupType(*value),
+		Valid:                true,
+	}
+}

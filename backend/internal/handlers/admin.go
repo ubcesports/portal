@@ -477,7 +477,7 @@ func (h *AdminHandler) UpdateExecProfile(w http.ResponseWriter, r *http.Request)
 		targetUserId,
 		util.ToPgText(updateExecProfileRequest.Title),
 		util.ToPgInt4(updateExecProfileRequest.DisplayOrder),
-		util.ToNullGroupType(updateExecProfileRequest.DisplayGroup),
+		util.ToNullExecDisplayGroupType(updateExecProfileRequest.DisplayGroup),
 		requestId,
 	)
 	if err != nil {

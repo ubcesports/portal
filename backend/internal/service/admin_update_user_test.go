@@ -27,6 +27,12 @@ type studentInfoUpdate struct {
 	studentID string
 }
 
+type execProfileUpdate struct {
+	title        pgtype.Text
+	displayOrder pgtype.Int4
+	displayGroup db.NullExecDisplayGroupType
+}
+
 // fakeAdminStore is an in-memory repository.AdminStore for exercising the admin
 // service without a database.
 type fakeAdminStore struct {
@@ -49,6 +55,7 @@ type fakeAdminStore struct {
 	cancelledMembershipIDs   []string
 	cancelMembershipResult   bool
 	cancelMembershipErr      error
+	execProfileUpdates       []execProfileUpdate
 
 	auditLogs []db.CreateAdminAuditLogParams
 }
@@ -186,6 +193,11 @@ func (f *fakeAdminStore) RemoveExecProfile(_ context.Context, _ string) error {
 }
 
 func (f *fakeAdminStore) UpdateExecProfile(_ context.Context, _ string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType) (db.GetExecProfileByUserIDRow, error) {
+	f.execProfileUpdates = append(f.execProfileUpdates, execProfileUpdate{
+		title:        title,
+		displayOrder: displayOrder,
+		displayGroup: displayGroup,
+	})
 	return db.GetExecProfileByUserIDRow{}, nil
 }
 

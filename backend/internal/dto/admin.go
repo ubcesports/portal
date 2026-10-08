@@ -40,9 +40,9 @@ type AdminUpdateUserRequest struct {
 }
 
 type AdminUpdateExecProfileRequest struct {
-	Title        *string    `json:"title"`
-	DisplayOrder *int32     `json:"display_order"`
-	DisplayGroup *GroupType `json:"display_group"`
+	Title        *string               `json:"title"`
+	DisplayOrder *int32                `json:"display_order"`
+	DisplayGroup *ExecDisplayGroupType `json:"display_group"`
 }
 
 type AdminAuditLogActor struct {
