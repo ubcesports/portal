@@ -45,6 +45,12 @@ type AdminUpdateExecProfileRequest struct {
 	DisplayGroup *ExecDisplayGroupType `json:"display_group"`
 }
 
+type AdminExecProfileDTO struct {
+	Title        string               `json:"title"`
+	DisplayOrder int32                `json:"display_order"`
+	DisplayGroup ExecDisplayGroupType `json:"display_group"`
+}
+
 type AdminAuditLogActor struct {
 	ActorUserId    string `json:"actor_user_id"`
 	ActorFullName  string `json:"actor_full_name"`

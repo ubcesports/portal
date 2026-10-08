@@ -51,7 +51,7 @@ FROM exec_profile e
 JOIN users u ON e.user_id = u.id
 LEFT JOIN exec_social_link s ON e.user_id = s.user_id
 GROUP BY e.user_id, e.title, e.display_order, e.display_group, u.full_name, u.avatar_url
-ORDER BY e.display_order ASC
+ORDER BY e.display_order ASC, u.full_name ASC, e.user_id ASC
 `
 
 type GetExecProfilesRow struct {

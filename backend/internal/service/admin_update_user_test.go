@@ -56,6 +56,8 @@ type fakeAdminStore struct {
 	cancelMembershipResult   bool
 	cancelMembershipErr      error
 	execProfileUpdates       []execProfileUpdate
+	execProfile              db.GetExecProfileByUserIDRow
+	getExecProfileErr        error
 
 	auditLogs []db.CreateAdminAuditLogParams
 }
@@ -192,6 +194,13 @@ func (f *fakeAdminStore) RemoveExecProfile(_ context.Context, _ string) error {
 	return nil
 }
 
+func (f *fakeAdminStore) GetExecProfile(_ context.Context, _ string) (db.GetExecProfileByUserIDRow, error) {
+	if f.getExecProfileErr != nil {
+		return db.GetExecProfileByUserIDRow{}, f.getExecProfileErr
+	}
+	return f.execProfile, nil
+}
+
 func (f *fakeAdminStore) UpdateExecProfile(_ context.Context, _ string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType) (db.GetExecProfileByUserIDRow, error) {
 	f.execProfileUpdates = append(f.execProfileUpdates, execProfileUpdate{
 		title:        title,
@@ -256,6 +265,12 @@ func newFakeAdminStore(t *testing.T, isStudent bool, studentID string, role db.R
 			Groups:    groups,
 		},
 		takenStudentIDs: map[string]bool{},
+		execProfile: db.GetExecProfileByUserIDRow{
+			UserID:       userID,
+			Title:        "Executive",
+			DisplayOrder: 0,
+			DisplayGroup: db.ExecDisplayGroupTypeExecutive,
+		},
 	}
 }
 

@@ -236,9 +236,28 @@ func (s *AdminService) GetUserByID(ctx context.Context, userId string) (*dto.Pro
 	return &profile, nil
 }
 
-func (s *AdminService) UpdateExecProfile(ctx context.Context, actorId string, targetId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType, requestId string) (db.GetExecProfileByUserIDRow, error) {
-	if displayGroup.Valid && !isValidExecDisplayGroup(displayGroup.ExecDisplayGroupType) {
-		err := fmt.Errorf("%w: invalid display group", ErrValidation)
+func (s *AdminService) GetExecProfile(ctx context.Context, targetId string) (*dto.AdminExecProfileDTO, error) {
+	profile, err := s.adminRepository.GetExecProfile(ctx, targetId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("%w: exec profile not found", ErrNotFound)
+		}
+		return nil, err
+	}
+
+	result := buildAdminExecProfile(profile)
+	return &result, nil
+}
+
+func (s *AdminService) UpdateExecProfile(ctx context.Context, actorId string, targetId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType, requestId string) (*dto.AdminExecProfileDTO, error) {
+	var validationErr error
+	if displayOrder.Valid && displayOrder.Int32 < 0 {
+		validationErr = fmt.Errorf("%w: display order must be zero or greater", ErrValidation)
+	} else if displayGroup.Valid && !isValidExecDisplayGroup(displayGroup.ExecDisplayGroupType) {
+		validationErr = fmt.Errorf("%w: invalid display group", ErrValidation)
+	}
+
+	if validationErr != nil {
 		outcome := db.AdminAuditOutcomeTypeFailed
 		description := fmt.Sprintf("Failed to update exec profile for user %s", targetId)
 
@@ -252,13 +271,10 @@ func (s *AdminService) UpdateExecProfile(ctx context.Context, actorId string, ta
 		})
 
 		if auditErr != nil {
-			if err != nil {
-				return db.GetExecProfileByUserIDRow{}, errors.Join(err, auditErr)
-			}
-			return db.GetExecProfileByUserIDRow{}, auditErr
+			return nil, errors.Join(validationErr, auditErr)
 		}
 
-		return db.GetExecProfileByUserIDRow{}, err
+		return nil, validationErr
 	}
 
 	updatedProfile, err := s.adminRepository.UpdateExecProfile(ctx, targetId, title, displayOrder, displayGroup)
@@ -285,16 +301,25 @@ func (s *AdminService) UpdateExecProfile(ctx context.Context, actorId string, ta
 
 	if auditErr != nil {
 		if err != nil {
-			return db.GetExecProfileByUserIDRow{}, errors.Join(err, auditErr)
+			return nil, errors.Join(err, auditErr)
 		}
-		return db.GetExecProfileByUserIDRow{}, auditErr
+		return nil, auditErr
 	}
 
 	if err != nil {
-		return db.GetExecProfileByUserIDRow{}, err
+		return nil, err
 	}
 
-	return updatedProfile, nil
+	result := buildAdminExecProfile(updatedProfile)
+	return &result, nil
+}
+
+func buildAdminExecProfile(profile db.GetExecProfileByUserIDRow) dto.AdminExecProfileDTO {
+	return dto.AdminExecProfileDTO{
+		Title:        profile.Title,
+		DisplayOrder: profile.DisplayOrder,
+		DisplayGroup: dto.ExecDisplayGroupType(profile.DisplayGroup),
+	}
 }
 
 // GetUserMemberships returns every membership the user has held, newest first.
