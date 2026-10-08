@@ -26,14 +26,15 @@ var Module = fx.Module("server",
 type RouterParams struct {
 	fx.In
 
-	HealthHandler        *handlers.HealthHandler
-	ProfileHandler       *handlers.ProfileHandler
-	AdminHandler         *handlers.AdminHandler
-	ExecProfileHandler   *handlers.ExecProfileHandler
-	MembershipHandler    *handlers.MembershipHandler
-	StripeWebhookHandler *handlers.StripeWebhookHandler
-	AdminRepository      *repository.AdminRepository
-	Limen                *limen.Limen
+	HealthHandler               *handlers.HealthHandler
+	ProfileHandler              *handlers.ProfileHandler
+	AdminHandler                *handlers.AdminHandler
+	ExecProfileHandler          *handlers.ExecProfileHandler
+	MembershipHandler           *handlers.MembershipHandler
+	MembershipInvitationHandler *handlers.MembershipInvitationHandler
+	StripeWebhookHandler        *handlers.StripeWebhookHandler
+	AdminRepository             *repository.AdminRepository
+	Limen                       *limen.Limen
 }
 
 // Add all new routes here
@@ -90,6 +91,10 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.Post("/admin/membership/add/{id}", params.AdminHandler.AddMembershipToUser)
 		r.Get("/admin/memberships/eligible/{id}", params.AdminHandler.GetEligibleTiersWithPricesById)
 		r.Patch("/admin/exec-profile/{id}", params.AdminHandler.UpdateExecProfile)
+		r.Post("/admin/membership-invitations", params.MembershipInvitationHandler.Create)
+		r.Get("/admin/membership-invitations", params.MembershipInvitationHandler.GetAll)
+		r.Get("/admin/membership-invitations/{id}", params.MembershipInvitationHandler.GetByID)
+		r.Delete("/admin/membership-invitations/{id}", params.MembershipInvitationHandler.Delete)
 	})
 
 	// All exec profile routes

@@ -487,6 +487,20 @@ type MembershipTierPrice struct {
 	PriceInCents      pgtype.Int8
 }
 
+type MembershipInvitation struct {
+	ID               pgtype.UUID
+	Email            string
+	TierID           pgtype.UUID
+	AmountPaidCents  int64
+	PaymentMethod    PaymentMethodType
+	Done             bool
+	CreatedByUserID  pgtype.UUID
+	InvitationSentAt pgtype.Timestamptz
+	PurchasedAt      pgtype.Timestamptz
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+}
+
 type Session struct {
 	ID         pgtype.UUID
 	Token      string
