@@ -675,7 +675,7 @@ Returns:
 
 Raises:
 
-	400: invalid request body, user ID, tier ID, or payment method
+	400: invalid request body, user ID, tier ID, amount paid, or payment method
 	401: user is not authenticated
 	403: user is not an admin
 	403: selected membership tier is unavailable or purchases are closed
@@ -718,6 +718,9 @@ func (h *AdminHandler) AddMembershipToUser(w http.ResponseWriter, r *http.Reques
 
 		case errors.Is(err, service.ErrInvalidMembershipTier):
 			util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_TIER_ID", service.ErrInvalidMembershipTier.Error(), requestId)
+
+		case errors.Is(err, service.ErrInvalidMembershipAmount):
+			util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_AMOUNT_PAID", service.ErrInvalidMembershipAmount.Error(), requestId)
 
 		case errors.Is(err, service.ErrTierNotEligible):
 			util.WriteApiResponse(w, http.StatusForbidden, "TIER_NOT_AVAILABLE", service.ErrTierNotEligible.Error(), requestId)

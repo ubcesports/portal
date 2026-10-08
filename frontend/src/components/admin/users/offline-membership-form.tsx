@@ -24,6 +24,7 @@ type OfflineMembershipFormProps = {
 
 export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
   const [tierId, setTierId] = useState("");
+  const [amountPaid, setAmountPaid] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<OfflinePaymentMethod | "">("");
   const {
     data: eligibleMemberships = [],
@@ -47,12 +48,23 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
       return;
     }
 
+    const dollars = Number(amountPaid);
+    if (amountPaid.trim() === "" || !Number.isFinite(dollars) || dollars < 0) {
+      toast.error("Enter a valid amount paid");
+      return;
+    }
+
     try {
-      await addMembership({ tier_id: selectedTier.id, payment_method: paymentMethod });
+      await addMembership({
+        tier_id: selectedTier.id,
+        amount_paid_cents: Math.round(dollars * 100),
+        payment_method: paymentMethod,
+      });
       toast.success(`${selectedTier.title} membership added`, {
-        description: `Recorded as ${PAYMENT_METHODS.find(({ value }) => value === paymentMethod)?.label}.`,
+        description: `${formatMembershipPrice(dollars)} paid via ${PAYMENT_METHODS.find(({ value }) => value === paymentMethod)?.label}.`,
       });
       setTierId("");
+      setAmountPaid("");
       setPaymentMethod("");
     } catch {
       // The shared API client displays the server error.
@@ -91,7 +103,7 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
             </ActionButton>
           </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.45fr)_auto] lg:items-end">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(10rem,0.3fr)_minmax(13rem,0.45fr)_auto] lg:items-end">
             <label className="flex min-w-0 flex-col gap-1.5 text-sm text-brand-text-subtle">
               <span>Eligible membership</span>
               <select
@@ -116,6 +128,27 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
             </label>
 
             <label className="flex flex-col gap-1.5 text-sm text-brand-text-subtle">
+              <span>Amount paid</span>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-brand-text-subtle">
+                  $
+                </span>
+                <input
+                  required
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={amountPaid}
+                  onChange={(event) => setAmountPaid(event.target.value)}
+                  placeholder="0.00"
+                  disabled={isAdding}
+                  className={`${FIELD_CLASS_NAME} pl-7`}
+                />
+              </div>
+            </label>
+
+            <label className="flex flex-col gap-1.5 text-sm text-brand-text-subtle">
               <span>Payment method</span>
               <select
                 value={paymentMethod}
@@ -136,7 +169,7 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
 
             <ActionButton
               type="submit"
-              disabled={!selectedTier || !paymentMethod}
+              disabled={!selectedTier || !amountPaid || !paymentMethod}
               loading={isAdding}
               icon={<Plus aria-hidden="true" className="size-4" />}
               loadingIcon={<Loader2 aria-hidden="true" className="size-4 animate-spin" />}
@@ -157,7 +190,7 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
             </div>
             <div>
               <span className="block text-xs uppercase tracking-wide text-brand-text-subtle">
-                Amount received
+                Eligible price
               </span>
               <span className="text-brand-text">
                 {formatMembershipPrice(selectedTier.prices.price)} CAD

@@ -81,6 +81,7 @@ export type OfflinePaymentMethod = Exclude<PaymentMethod, "stripe">;
 
 export type AddOfflineMembershipRequest = {
   tier_id: string;
+  amount_paid_cents: number;
   payment_method: OfflinePaymentMethod;
 };
 

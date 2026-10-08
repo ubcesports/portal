@@ -52,6 +52,7 @@ type AdminAuditLogActor struct {
 }
 
 type AdminAddMembershipToUserRequest struct {
-	TierId        string            `json:"tier_id"`
-	PaymentMethod PaymentMethodType `json:"payment_method"`
+	TierId          string            `json:"tier_id"`
+	AmountPaidCents int64             `json:"amount_paid_cents"`
+	PaymentMethod   PaymentMethodType `json:"payment_method"`
 }
