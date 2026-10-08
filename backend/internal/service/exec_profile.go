@@ -37,6 +37,15 @@ func (s *ExecProfileService) GetExecProfiles(ctx context.Context) ([]*dto.ExecPr
 	return execProfiles, nil
 }
 
+func (s *ExecProfileService) GetExecProfileByUserID(ctx context.Context, userId string) (*dto.ExecProfileDTO, error) {
+	row, err := s.execProfileRepository.GetExecProfileByUserID(ctx, userId)
+	if err != nil {
+		return nil, fmt.Errorf("get exec profile: %w", err)
+	}
+
+	return buildExecProfile(row)
+}
+
 func (s *ExecProfileService) UpdateExecSocialLink(ctx context.Context, userId string, platform db.ExecSocialPlatformType, url string) error {
 	if err := s.execProfileRepository.UpdateExecSocialLink(ctx, userId, platform, url); err != nil {
 		return fmt.Errorf("update exec social link: %w", err)

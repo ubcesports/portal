@@ -7,6 +7,7 @@ import { use, useEffect, type ReactNode } from "react";
 import { isAxiosError } from "axios";
 import { UserMembershipsPanel } from "@/components/admin/users/user-memberships-panel";
 import { UserProfilePanel } from "@/components/admin/users/user-profile-panel";
+import { AdminExecProfilePanel } from "@/components/admin/users/admin-exec-profile-panel";
 import { BasePage } from "@/components/layout/base-page";
 import { MembershipLoadError } from "@/components/membership/membership-load-error";
 import { useUpdateUser, useUser, useUserMemberships } from "@/lib/admin/admin.hook";
@@ -98,6 +99,10 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
     return null;
   }
 
+  const hasExecGroup = user.groups.some((group) =>
+    ["executive", "director", "board"].includes(group),
+  );
+
   return (
     <BasePage>
       <div className="flex flex-1 flex-col py-6">
@@ -111,6 +116,8 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
           </Link>
 
           <UserProfilePanel user={user} onSave={handleSave} isSaving={isSaving} />
+
+          {hasExecGroup ? <AdminExecProfilePanel userId={userId} /> : null}
 
           {areMembershipsPending ? (
             <div className="flex items-center gap-3 border border-brand-border px-5 py-6 text-sm text-brand-text-muted">

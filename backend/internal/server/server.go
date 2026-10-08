@@ -89,6 +89,7 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.Get("/admin/audit-logs/export", params.AdminHandler.ExportAuditLogsCSV)
 		r.Post("/admin/membership/add/{id}", params.AdminHandler.AddMembershipToUser)
 		r.Get("/admin/memberships/eligible/{id}", params.AdminHandler.GetEligibleTiersWithPricesById)
+		r.Get("/admin/exec-profile/{id}", params.AdminHandler.GetExecProfile)
 		r.Patch("/admin/exec-profile/{id}", params.AdminHandler.UpdateExecProfile)
 	})
 
@@ -97,6 +98,7 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.Use(auth.RequireAuth(params.Limen))
 		r.Use(auth.RequireExecGroup(params.AdminRepository))
 
+		r.Get("/exec-profile", params.ExecProfileHandler.GetCurrentExecProfile)
 		r.Put("/exec-profile/social-links", params.ExecProfileHandler.UpdateExecSocialLink)
 		r.Delete("/exec-profile/social-links", params.ExecProfileHandler.DeleteExecSocialLink)
 		r.Patch("/exec-profile/title", params.ExecProfileHandler.UpdateExecProfileTitle)

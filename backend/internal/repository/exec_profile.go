@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5"
+
 	"github.com/ubcesports/memberships/internal/database/db"
 	"github.com/ubcesports/memberships/internal/util"
 )
@@ -17,6 +19,26 @@ func NewExecProfileRepository(store *db.Queries) *ExecProfileRepository {
 
 func (r *ExecProfileRepository) GetExecProfiles(ctx context.Context) ([]db.GetExecProfilesRow, error) {
 	return r.store.GetExecProfiles(ctx)
+}
+
+func (r *ExecProfileRepository) GetExecProfileByUserID(ctx context.Context, userId string) (db.GetExecProfilesRow, error) {
+	pgUserId, err := util.GetValidatedUUID(userId)
+	if err != nil {
+		return db.GetExecProfilesRow{}, err
+	}
+
+	profiles, err := r.store.GetExecProfiles(ctx)
+	if err != nil {
+		return db.GetExecProfilesRow{}, err
+	}
+
+	for _, profile := range profiles {
+		if profile.UserID == pgUserId {
+			return profile, nil
+		}
+	}
+
+	return db.GetExecProfilesRow{}, pgx.ErrNoRows
 }
 
 func (r *ExecProfileRepository) UpdateExecProfileByUserID(ctx context.Context, userId string, title string, displayOrder int32, displayGroup db.GroupType) (db.GetExecProfileByUserIDRow, error) {

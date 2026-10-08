@@ -1,5 +1,6 @@
 import type { GroupType, RoleType, User } from "./user.types";
 import type { PaymentMethod } from "./membership.types";
+import type { ExecDisplayGroup } from "./exec-profile.types";
 
 export type SearchMode = "full_name" | "email" | "student_id";
 
@@ -61,6 +62,21 @@ export type UsersResponse = {
 
 export type UserResponse = {
   user: User;
+};
+
+export type AdminExecProfile = {
+  title: string;
+  display_order: number;
+  display_group: ExecDisplayGroup;
+};
+
+export type AdminExecProfileResponse = {
+  exec_profile: AdminExecProfile;
+};
+
+export type UpdateAdminExecProfileRequest = {
+  display_order?: number;
+  display_group?: ExecDisplayGroup;
 };
 
 /*

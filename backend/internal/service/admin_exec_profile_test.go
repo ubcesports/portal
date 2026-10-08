@@ -5,8 +5,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/ubcesports/memberships/internal/database/db"
+	"github.com/ubcesports/memberships/internal/dto"
 )
 
 func TestUpdateExecProfileAcceptsEveryDisplayGroup(t *testing.T) {
@@ -45,6 +47,33 @@ func TestUpdateExecProfileAcceptsEveryDisplayGroup(t *testing.T) {
 	}
 }
 
+func TestGetExecProfileReturnsAdminDTO(t *testing.T) {
+	store := newFakeAdminStore(t, false, "N1234567", db.RoleTypeMember, "executive")
+	store.execProfile.Title = "VP Events"
+	store.execProfile.DisplayOrder = 4
+	store.execProfile.DisplayGroup = db.ExecDisplayGroupTypeCentralDirector
+	adminService := &AdminService{adminRepository: store}
+
+	profile, err := adminService.GetExecProfile(context.Background(), testTargetID)
+	if err != nil {
+		t.Fatalf("expected profile, got %v", err)
+	}
+	if profile.Title != "VP Events" || profile.DisplayOrder != 4 || profile.DisplayGroup != dto.ExecDisplayGroupTypeCentralDirector {
+		t.Fatalf("unexpected profile: %#v", profile)
+	}
+}
+
+func TestGetExecProfileMapsMissingProfileToNotFound(t *testing.T) {
+	store := newFakeAdminStore(t, false, "N1234567", db.RoleTypeMember, "member")
+	store.getExecProfileErr = pgx.ErrNoRows
+	adminService := &AdminService{adminRepository: store}
+
+	_, err := adminService.GetExecProfile(context.Background(), testTargetID)
+	if !errors.Is(err, ErrNotFound) {
+		t.Fatalf("expected not found error, got %v", err)
+	}
+}
+
 func TestUpdateExecProfileAllowsOmittedDisplayGroup(t *testing.T) {
 	store := newFakeAdminStore(t, false, "N1234567", db.RoleTypeMember, "executive")
 	adminService := &AdminService{adminRepository: store}
@@ -77,6 +106,27 @@ func TestUpdateExecProfileRejectsInvalidDisplayGroup(t *testing.T) {
 		pgtype.Text{},
 		pgtype.Int4{},
 		db.NullExecDisplayGroupType{ExecDisplayGroupType: "invalid", Valid: true},
+		testRequestID,
+	)
+	if !errors.Is(err, ErrValidation) {
+		t.Fatalf("expected validation error, got %v", err)
+	}
+	if len(store.execProfileUpdates) != 0 {
+		t.Fatalf("expected no exec profile update, got %#v", store.execProfileUpdates)
+	}
+}
+
+func TestUpdateExecProfileRejectsNegativeDisplayOrder(t *testing.T) {
+	store := newFakeAdminStore(t, false, "N1234567", db.RoleTypeMember, "executive")
+	adminService := &AdminService{adminRepository: store}
+
+	_, err := adminService.UpdateExecProfile(
+		context.Background(),
+		testActorID,
+		testTargetID,
+		pgtype.Text{},
+		pgtype.Int4{Int32: -1, Valid: true},
+		db.NullExecDisplayGroupType{},
 		testRequestID,
 	)
 	if !errors.Is(err, ErrValidation) {
