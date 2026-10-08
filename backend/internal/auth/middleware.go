@@ -14,6 +14,9 @@ type requestMetadataKey struct{}
 type RequestMetadata struct {
 	UserID string
 }
+type ExecGroupChecker interface {
+	HasExecGroup(ctx context.Context, userID string) (bool, error)
+}
 
 const sessionKey contextKey = "session"
 
@@ -80,6 +83,37 @@ func RequireOnboarded(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func RequireExecGroup(checker ExecGroupChecker) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			session := SessionFromContext((r.Context()))
+			if session == nil || session.User == nil {
+				writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
+				return
+			}
+
+			userID, ok := session.User.ID.(string)
+			if !ok || userID == "" {
+				writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
+				return
+			}
+
+			hasExecGroup, err := checker.HasExecGroup(r.Context(), userID)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to verify executive group")
+				return
+			}
+
+			if !hasExecGroup {
+				writeError(w, http.StatusForbidden, "FORBIDDEN", "Forbidden")
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func isUserOnboarded(user *limen.User) bool {

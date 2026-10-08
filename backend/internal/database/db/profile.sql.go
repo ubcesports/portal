@@ -98,12 +98,18 @@ WITH onboarded AS (
     WHERE id = $5
       AND onboarding_completed_at IS NULL
     RETURNING id
+), executive_group AS (
+    INSERT INTO user_groups (user_id, "group")
+    SELECT id, 'executive'::group_type
+    FROM onboarded
+    WHERE $1::boolean
+    ON CONFLICT (user_id, "group") DO NOTHING
 )
-INSERT INTO user_groups (user_id, "group")
-SELECT id, 'executive'::group_type
+INSERT INTO exec_profile (user_id)
+SELECT id
 FROM onboarded
 WHERE $1::boolean
-ON CONFLICT (user_id, "group") DO NOTHING
+ON CONFLICT (user_id) DO NOTHING
 `
 
 type OnboardUserByUserIdParams struct {

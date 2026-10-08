@@ -54,6 +54,97 @@ func (ns NullAdminAuditOutcomeType) Value() (driver.Value, error) {
 	return string(ns.AdminAuditOutcomeType), nil
 }
 
+type ExecDisplayGroupType string
+
+const (
+	ExecDisplayGroupTypePresident       ExecDisplayGroupType = "president"
+	ExecDisplayGroupTypeBoard           ExecDisplayGroupType = "board"
+	ExecDisplayGroupTypeCentralDirector ExecDisplayGroupType = "central_director"
+	ExecDisplayGroupTypeGameDirector    ExecDisplayGroupType = "game_director"
+	ExecDisplayGroupTypeExecutive       ExecDisplayGroupType = "executive"
+)
+
+func (e *ExecDisplayGroupType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ExecDisplayGroupType(s)
+	case string:
+		*e = ExecDisplayGroupType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ExecDisplayGroupType: %T", src)
+	}
+	return nil
+}
+
+type NullExecDisplayGroupType struct {
+	ExecDisplayGroupType ExecDisplayGroupType
+	Valid                bool // Valid is true if ExecDisplayGroupType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullExecDisplayGroupType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ExecDisplayGroupType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ExecDisplayGroupType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullExecDisplayGroupType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ExecDisplayGroupType), nil
+}
+
+type ExecSocialPlatformType string
+
+const (
+	ExecSocialPlatformTypeInstagram ExecSocialPlatformType = "instagram"
+	ExecSocialPlatformTypeX         ExecSocialPlatformType = "x"
+	ExecSocialPlatformTypeTwitch    ExecSocialPlatformType = "twitch"
+	ExecSocialPlatformTypeYoutube   ExecSocialPlatformType = "youtube"
+	ExecSocialPlatformTypeTiktok    ExecSocialPlatformType = "tiktok"
+	ExecSocialPlatformTypeLinkedin  ExecSocialPlatformType = "linkedin"
+)
+
+func (e *ExecSocialPlatformType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ExecSocialPlatformType(s)
+	case string:
+		*e = ExecSocialPlatformType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ExecSocialPlatformType: %T", src)
+	}
+	return nil
+}
+
+type NullExecSocialPlatformType struct {
+	ExecSocialPlatformType ExecSocialPlatformType
+	Valid                  bool // Valid is true if ExecSocialPlatformType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullExecSocialPlatformType) Scan(value interface{}) error {
+	if value == nil {
+		ns.ExecSocialPlatformType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ExecSocialPlatformType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullExecSocialPlatformType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ExecSocialPlatformType), nil
+}
+
 type GroupType string
 
 const (
@@ -337,6 +428,21 @@ type AdminAuditLog struct {
 	Outcome      AdminAuditOutcomeType
 	RequestID    string
 	Description  pgtype.Text
+}
+
+type ExecProfile struct {
+	UserID       pgtype.UUID
+	Title        string
+	DisplayOrder int32
+	DisplayGroup ExecDisplayGroupType
+	UpdatedAt    pgtype.Timestamptz
+}
+
+type ExecSocialLink struct {
+	UserID    pgtype.UUID
+	Platform  ExecSocialPlatformType
+	Url       string
+	UpdatedAt pgtype.Timestamptz
 }
 
 type Membership struct {

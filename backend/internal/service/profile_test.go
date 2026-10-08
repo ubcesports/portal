@@ -38,6 +38,24 @@ func TestOnboardUserSavesProvidedName(t *testing.T) {
 	}
 }
 
+func TestOnboardUserPassesExecutiveInviteToAtomicOnboardingQuery(t *testing.T) {
+	t.Setenv("EXEC_ONBOARDING_CODE", "exec-invite")
+	store := &onboardingTestDB{profile: db.GetProfileByUserIDRow{FullName: "Provider Name"}}
+	service := NewProfileService(repository.NewProfileRepository(db.New(store)))
+	inviteCode := " exec-invite "
+
+	err := service.OnboardUser(context.Background(), testTargetID, dto.OnboardUserRequest{
+		FullName:   "Executive User",
+		InviteCode: &inviteCode,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(store.onboardArgs) != 5 || store.onboardArgs[0] != true {
+		t.Fatalf("expected executive onboarding query, got %#v", store.onboardArgs)
+	}
+}
+
 func TestOnboardUserCannotChangeNameAfterOnboarding(t *testing.T) {
 	store := &onboardingTestDB{profile: db.GetProfileByUserIDRow{
 		FullName:              "Original Name",

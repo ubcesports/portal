@@ -23,6 +23,13 @@ import (
 // Postgres error code for a unique constraint violation.
 const pgUniqueViolationCode = "23505"
 
+var defaultDisplayGroupType = map[db.GroupType]db.ExecDisplayGroupType{
+	"executive": db.ExecDisplayGroupTypeExecutive,
+	"board":     db.ExecDisplayGroupTypeBoard,
+	"director":  db.ExecDisplayGroupTypeGameDirector,
+	"president": db.ExecDisplayGroupTypePresident,
+}
+
 type AdminUserFilters struct {
 	FullName          string
 	StudentID         string
@@ -227,6 +234,67 @@ func (s *AdminService) GetUserByID(ctx context.Context, userId string) (*dto.Pro
 
 	profile := buildAdminUserProfile(row)
 	return &profile, nil
+}
+
+func (s *AdminService) UpdateExecProfile(ctx context.Context, actorId string, targetId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType, requestId string) (db.GetExecProfileByUserIDRow, error) {
+	if displayGroup.Valid && !isValidExecDisplayGroup(displayGroup.ExecDisplayGroupType) {
+		err := fmt.Errorf("%w: invalid display group", ErrValidation)
+		outcome := db.AdminAuditOutcomeTypeFailed
+		description := fmt.Sprintf("Failed to update exec profile for user %s", targetId)
+
+		auditErr := s.createAdminAuditLog(ctx, s.adminRepository, AdminAuditLogInput{
+			ActorUserID:  actorId,
+			Action:       "exec_profile.updated",
+			TargetUserID: targetId,
+			Outcome:      outcome,
+			RequestID:    requestId,
+			Description:  description,
+		})
+
+		if auditErr != nil {
+			if err != nil {
+				return db.GetExecProfileByUserIDRow{}, errors.Join(err, auditErr)
+			}
+			return db.GetExecProfileByUserIDRow{}, auditErr
+		}
+
+		return db.GetExecProfileByUserIDRow{}, err
+	}
+
+	updatedProfile, err := s.adminRepository.UpdateExecProfile(ctx, targetId, title, displayOrder, displayGroup)
+	if errors.Is(err, pgx.ErrNoRows) {
+		err = fmt.Errorf("%w: exec profile not found", ErrNotFound)
+	}
+
+	description := fmt.Sprintf("Updated exec profile for user %s", targetId)
+	outcome := db.AdminAuditOutcomeTypeSuccess
+
+	if err != nil {
+		description = fmt.Sprintf("Failed to update exec profile for user %s", targetId)
+		outcome = db.AdminAuditOutcomeTypeFailed
+	}
+
+	auditErr := s.createAdminAuditLog(ctx, s.adminRepository, AdminAuditLogInput{
+		ActorUserID:  actorId,
+		Action:       "exec_profile.updated",
+		TargetUserID: targetId,
+		Outcome:      outcome,
+		RequestID:    requestId,
+		Description:  description,
+	})
+
+	if auditErr != nil {
+		if err != nil {
+			return db.GetExecProfileByUserIDRow{}, errors.Join(err, auditErr)
+		}
+		return db.GetExecProfileByUserIDRow{}, auditErr
+	}
+
+	if err != nil {
+		return db.GetExecProfileByUserIDRow{}, err
+	}
+
+	return updatedProfile, nil
 }
 
 // GetUserMemberships returns every membership the user has held, newest first.
@@ -691,6 +759,32 @@ func (s *AdminService) applyGroupUpdates(
 			return nil, auditable(actionGroupAdded, fmt.Sprintf("Failed to add group %s", group), err)
 		}
 
+		hasExecGroup, err := store.HasExecGroup(ctx, user.ID.String())
+		if err != nil {
+			return nil, auditable(actionGroupAdded, "Failed to add group: "+err.Error(), err)
+		}
+
+		hasExecProfile, err := store.HasExecProfile(ctx, user.ID.String())
+		if err != nil {
+			return nil, auditable(actionGroupAdded, "Failed to add group: "+err.Error(), err)
+		}
+
+		if hasExecGroup && !hasExecProfile {
+			err := store.CreateExecProfile(ctx, user.ID.String(), pgtype.Text{
+				String: "Executive",
+				Valid:  true,
+			}, pgtype.Int4{
+				Int32: 0,
+				Valid: true,
+			}, db.NullExecDisplayGroupType{
+				ExecDisplayGroupType: defaultDisplayGroupType[group],
+				Valid:                true,
+			})
+			if err != nil {
+				return nil, auditable(actionGroupAdded, "Failed to add group: "+err.Error(), err)
+			}
+		}
+
 		current[group] = struct{}{}
 		entries = append(entries, pendingAuditLog{
 			action:      actionGroupAdded,
@@ -713,6 +807,22 @@ func (s *AdminService) applyGroupUpdates(
 
 		if err := store.RemoveUserGroup(ctx, user.ID.String(), group); err != nil {
 			return nil, auditable(actionGroupRemoved, fmt.Sprintf("Failed to remove group %s", group), err)
+		}
+
+		hasExecGroup, err := store.HasExecGroup(ctx, user.ID.String())
+		if err != nil {
+			return nil, auditable(actionGroupRemoved, "Failed to remove group: "+err.Error(), err)
+		}
+
+		hasExecProfile, err := store.HasExecProfile(ctx, user.ID.String())
+		if err != nil {
+			return nil, auditable(actionGroupRemoved, "Failed to remove group: "+err.Error(), err)
+		}
+
+		if !hasExecGroup && hasExecProfile {
+			if err := store.RemoveExecProfile(ctx, user.ID.String()); err != nil {
+				return nil, auditable(actionGroupRemoved, "Failed to remove group: "+err.Error(), err)
+			}
 		}
 
 		delete(current, group)
@@ -1172,4 +1282,17 @@ func (s *AdminService) getAdminAuditLogs(ctx context.Context, params db.GetAdmin
 	}
 
 	return logs, nil
+}
+
+func isValidExecDisplayGroup(value db.ExecDisplayGroupType) bool {
+	switch value {
+	case db.ExecDisplayGroupTypePresident,
+		db.ExecDisplayGroupTypeBoard,
+		db.ExecDisplayGroupTypeCentralDirector,
+		db.ExecDisplayGroupTypeGameDirector,
+		db.ExecDisplayGroupTypeExecutive:
+		return true
+	default:
+		return false
+	}
 }
