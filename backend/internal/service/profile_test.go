@@ -20,7 +20,7 @@ func TestOnboardUserSavesProvidedName(t *testing.T) {
 	for _, isStudent := range []bool{false, true} {
 		t.Run(map[bool]string{false: "community member", true: "student"}[isStudent], func(t *testing.T) {
 			store := &onboardingTestDB{profile: db.GetProfileByUserIDRow{FullName: "Provider Name"}}
-			service := NewProfileService(repository.NewProfileRepository(db.New(store)))
+			service := NewProfileService(repository.NewProfileRepository(db.New(store)), nil)
 			studentID := "12345678"
 			err := service.OnboardUser(context.Background(), testTargetID, dto.OnboardUserRequest{
 				FullName: "  Renée O'Connor-Smith  ", IsStudent: isStudent, StudentID: &studentID,
@@ -41,7 +41,7 @@ func TestOnboardUserSavesProvidedName(t *testing.T) {
 func TestOnboardUserPassesExecutiveInviteToAtomicOnboardingQuery(t *testing.T) {
 	t.Setenv("EXEC_ONBOARDING_CODE", "exec-invite")
 	store := &onboardingTestDB{profile: db.GetProfileByUserIDRow{FullName: "Provider Name"}}
-	service := NewProfileService(repository.NewProfileRepository(db.New(store)))
+	service := NewProfileService(repository.NewProfileRepository(db.New(store)), nil)
 	inviteCode := " exec-invite "
 
 	err := service.OnboardUser(context.Background(), testTargetID, dto.OnboardUserRequest{
@@ -61,7 +61,7 @@ func TestOnboardUserCannotChangeNameAfterOnboarding(t *testing.T) {
 		FullName:              "Original Name",
 		OnboardingCompletedAt: pgtype.Timestamptz{Time: time.Now(), Valid: true},
 	}}
-	service := NewProfileService(repository.NewProfileRepository(db.New(store)))
+	service := NewProfileService(repository.NewProfileRepository(db.New(store)), nil)
 	err := service.OnboardUser(context.Background(), testTargetID, dto.OnboardUserRequest{FullName: "Replacement Name"})
 	if !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected conflict for completed onboarding, got %v", err)
@@ -104,7 +104,7 @@ func (r onboardingTestRow) Scan(dest ...any) error {
 func TestOnboardUserRequiresFullName(t *testing.T) {
 	for _, name := range []string{"", "   ", "\t\n", "\u00a0"} {
 		t.Run(name, func(t *testing.T) {
-			service := NewProfileService(nil)
+			service := NewProfileService(nil, nil)
 			err := service.OnboardUser(context.Background(), "", dto.OnboardUserRequest{FullName: name})
 			if !errors.Is(err, ErrValidation) {
 				t.Fatalf("expected validation error for blank full name, got %v", err)

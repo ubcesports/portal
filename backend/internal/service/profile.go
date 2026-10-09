@@ -27,11 +27,18 @@ var (
 var studentIDRegex = regexp.MustCompile(`^\d{8}$`) // Regex to ensure student id is an 8 digit number, which all ubc student ids are
 
 type ProfileService struct {
-	profileRepository *repository.ProfileRepository
+	profileRepository           *repository.ProfileRepository
+	membershipInvitationService *MembershipInvitationService
 }
 
-func NewProfileService(profileRepository *repository.ProfileRepository) *ProfileService {
-	return &ProfileService{profileRepository: profileRepository}
+func NewProfileService(
+	profileRepository *repository.ProfileRepository,
+	membershipInvitationService *MembershipInvitationService,
+) *ProfileService {
+	return &ProfileService{
+		profileRepository:           profileRepository,
+		membershipInvitationService: membershipInvitationService,
+	}
 }
 
 func (s *ProfileService) GetProfileByUserID(ctx context.Context, userID string) (*dto.ProfileDTO, error) {
@@ -43,7 +50,16 @@ func (s *ProfileService) GetProfileByUserID(ctx context.Context, userID string) 
 	if err != nil {
 		return nil, err
 	}
-	return buildProfile(row), nil
+	profile := buildProfile(row)
+	if profile.OnboardingCompletedAt != nil && s.membershipInvitationService != nil {
+		if _, err := s.membershipInvitationService.RedeemForUser(ctx, profile); err != nil {
+			slog.ErrorContext(ctx, "redeem membership invitation failed",
+				"error", err,
+				"user_id", profile.ID,
+			)
+		}
+	}
+	return profile, nil
 }
 
 func (s *ProfileService) OnboardUser(ctx context.Context, userId string, onboardUserRequest dto.OnboardUserRequest) error {
@@ -102,7 +118,21 @@ func (s *ProfileService) OnboardUser(ctx context.Context, userId string, onboard
 		return err
 	}
 
-	s.sendWelcomeEmail(ctx, user)
+	updatedRow, err := s.profileRepository.GetProfileByUserID(ctx, userId)
+	if err != nil {
+		return err
+	}
+	updatedUser := buildProfile(updatedRow)
+	if s.membershipInvitationService != nil {
+		if _, err := s.membershipInvitationService.RedeemForUser(ctx, updatedUser); err != nil {
+			slog.ErrorContext(ctx, "redeem membership invitation after onboarding failed",
+				"error", err,
+				"user_id", updatedUser.ID,
+			)
+		}
+	}
+
+	s.sendWelcomeEmail(ctx, updatedUser)
 	return nil
 }
 

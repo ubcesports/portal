@@ -47,11 +47,11 @@ func Init() error {
 //		"Welcome to our platform!",
 //		"<h1>Thanks for signing up!</h1>",
 //	)
-func SendEmailAsync(to []string, subject string, htmlContent string, requesdId string, userId string) {
+func SendEmailAsync(to []string, subject string, htmlContent string, requestID string, userID string) {
 	if client == nil {
 		slog.Error("email delivery skipped: mailer not initialized",
-			"request_id", requesdId,
-			"used_id", userId,
+			"request_id", requestID,
+			"user_id", userID,
 			"recipient_count", len(to),
 		)
 		return
@@ -69,16 +69,16 @@ func SendEmailAsync(to []string, subject string, htmlContent string, requesdId s
 		if err != nil {
 			slog.Error("email delivery failed",
 				"error", err,
-				"request_id", requesdId,
-				"used_id", userId,
+				"request_id", requestID,
+				"user_id", userID,
 				"recipient_count", len(to),
 			)
 			return
 		}
 
 		slog.Info("email delivered",
-			"request_id", requesdId,
-			"used_id", userId,
+			"request_id", requestID,
+			"user_id", userID,
 			"recipient_count", len(to),
 		)
 	}()
