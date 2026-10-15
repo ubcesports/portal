@@ -566,7 +566,7 @@ Args (query params):
 
 Returns:
 
-	audit-logs.csv: CSV file containing all matching audit logs (HTTP 200)
+	admin-audit-logs.csv: CSV file containing all matching audit logs (HTTP 200)
 
 Raises:
 
@@ -587,22 +587,22 @@ func (h *AdminHandler) ExportAuditLogsCSV(w http.ResponseWriter, r *http.Request
 
 	filters, err := parseAdminAuditLogFilters(r)
 	if err != nil {
-		util.WriteApiResponse(w, http.StatusBadRequest, "BAD_REQUEST", "Filters to get users could not be parsed.", requestId)
+		util.WriteApiResponse(w, http.StatusBadRequest, "BAD_REQUEST", "Filters to get audit logs could not be parsed.", requestId)
 		return
 	}
 
 	logs, err := h.adminService.ExportAuditLogs(r.Context(), filters, userId, requestId)
 	if err != nil {
-		slog.ErrorContext(r.Context(), "unable to export users",
+		slog.ErrorContext(r.Context(), "unable to export audit logs",
 			"error", err,
 			"request_id", requestId,
 		)
-		util.WriteApiResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to export users.", requestId)
+		util.WriteApiResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to export audit logs.", requestId)
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
-	w.Header().Set("Content-Disposition", `attachment; filename="users.csv"`)
+	w.Header().Set("Content-Disposition", `attachment; filename="admin-audit-logs.csv"`)
 
 	writer := csv.NewWriter(w)
 	if err := writer.Write([]string{
@@ -629,6 +629,11 @@ func (h *AdminHandler) ExportAuditLogsCSV(w http.ResponseWriter, r *http.Request
 		if description == nil {
 			description = new(string)
 		}
+		var targetFullName, targetAvatarURL string
+		if log.TargetUser != nil {
+			targetFullName = log.TargetUser.ActorFullName
+			targetAvatarURL = log.TargetUser.ActorAvatarURL
+		}
 		if err := writer.Write([]string{
 			log.Actor.ActorUserId,
 			log.Actor.ActorFullName,
@@ -638,8 +643,8 @@ func (h *AdminHandler) ExportAuditLogsCSV(w http.ResponseWriter, r *http.Request
 			safeCSVCell(*description),
 			string(log.Outcome),
 			log.RequestId,
-			safeCSVCell(log.TargetUser.ActorFullName),
-			safeCSVCell(log.TargetUser.ActorAvatarURL),
+			safeCSVCell(targetFullName),
+			safeCSVCell(targetAvatarURL),
 		}); err != nil {
 			slog.ErrorContext(r.Context(), "unable to write CSV row",
 				"error", err,

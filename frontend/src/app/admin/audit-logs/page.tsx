@@ -36,8 +36,8 @@ export default function AuditLogsPage() {
   const { mutate: exportAuditLogs, isPending: isExporting } = useMutation({
     mutationFn: () => exportAuditLogsCSV(debouncedSearch),
     onSuccess: (blob) => {
-      downloadCSVBlob(blob);
-      toast.success("Users exported");
+      downloadCSVBlob(blob, "admin-audit-logs.csv");
+      toast.success("Audit logs exported");
     },
   });
 
