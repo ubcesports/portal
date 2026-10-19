@@ -21,6 +21,8 @@ func TestRequestLoggerAddsRequestIDAndLogsRequest(t *testing.T) {
 		w.WriteHeader(http.StatusCreated)
 	})))
 	req := httptest.NewRequest(http.MethodPost, "/onboard", nil)
+	req.RemoteAddr = "203.0.113.7:54321"
+	req.Header.Set("X-Forwarded-For", "198.51.100.1, 10.0.0.2")
 	rec := httptest.NewRecorder()
 
 	handler.ServeHTTP(rec, req)
@@ -28,7 +30,13 @@ func TestRequestLoggerAddsRequestIDAndLogsRequest(t *testing.T) {
 	if rec.Header().Get("X-Request-ID") == "" {
 		t.Fatal("expected an X-Request-ID response header")
 	}
-	for _, expected := range []string{`"msg":"request completed"`, `"path":"/onboard"`, `"status":201`} {
+	for _, expected := range []string{
+		`"msg":"request completed"`,
+		`"path":"/onboard"`,
+		`"status":201`,
+		`"remote_ip":"203.0.113.7"`,
+		`"forwarded_for":"198.51.100.1, 10.0.0.2"`,
+	} {
 		if !strings.Contains(logs.String(), expected) {
 			t.Fatalf("expected log to contain %s, got %s", expected, logs.String())
 		}
@@ -55,10 +63,33 @@ func TestRecovererReturns500AndLogsPanic(t *testing.T) {
 	if rec.Header().Get("X-Request-ID") == "" {
 		t.Fatal("expected an X-Request-ID response header")
 	}
-	for _, expected := range []string{`"msg":"panic recovered"`, `"panic":"test panic"`, `"stack":`} {
+	for _, expected := range []string{`"msg":"panic recovered"`, `"panic":"test panic"`, `"stack":`, `"remote_ip":"192.0.2.1"`} {
 		if !strings.Contains(logs.String(), expected) {
 			t.Fatalf("expected panic log to contain %s, got %s", expected, logs.String())
 		}
+	}
+}
+
+func TestRequestLoggerOmitsForwardedForWhenAbsent(t *testing.T) {
+	var logs bytes.Buffer
+	previousLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&logs, nil)))
+	t.Cleanup(func() { slog.SetDefault(previousLogger) })
+
+	handler := middleware.RequestID(logger(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})))
+	req := httptest.NewRequest(http.MethodGet, "/profile", nil)
+	req.RemoteAddr = "[2001:db8::1]:443"
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if !strings.Contains(logs.String(), `"remote_ip":"2001:db8::1"`) {
+		t.Fatalf("expected log to contain IPv6 remote_ip, got %s", logs.String())
+	}
+	if strings.Contains(logs.String(), `"forwarded_for"`) {
+		t.Fatalf("expected no forwarded_for attr, got %s", logs.String())
 	}
 }
 
