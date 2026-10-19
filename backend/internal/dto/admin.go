@@ -39,6 +39,12 @@ type AdminUpdateUserRequest struct {
 	CancelMembershipId *string     `json:"cancel_membership_id"`
 }
 
+type AdminUpdateExecProfileRequest struct {
+	Title        *string               `json:"title"`
+	DisplayOrder *int32                `json:"display_order"`
+	DisplayGroup *ExecDisplayGroupType `json:"display_group"`
+}
+
 type AdminAuditLogActor struct {
 	ActorUserId    string `json:"actor_user_id"`
 	ActorFullName  string `json:"actor_full_name"`
@@ -46,6 +52,7 @@ type AdminAuditLogActor struct {
 }
 
 type AdminAddMembershipToUserRequest struct {
-	TierId        string            `json:"tier_id"`
-	PaymentMethod PaymentMethodType `json:"payment_method"`
+	TierId          string            `json:"tier_id"`
+	AmountPaidCents int64             `json:"amount_paid_cents"`
+	PaymentMethod   PaymentMethodType `json:"payment_method"`
 }

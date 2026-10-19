@@ -8,6 +8,9 @@ import {
   fetchEligibleMembershipsForUser,
   addOfflineMembership,
   fetchAdminMembershipTierOptions,
+  fetchMembershipInvitations,
+  createMembershipInvitation,
+  deleteMembershipInvitation,
 } from "./admin.api";
 import type {
   AddOfflineMembershipRequest,
@@ -15,6 +18,7 @@ import type {
   AdminPagination,
   AppliedSearch,
   UpdateUserRequest,
+  CreateMembershipInvitationRequest,
 } from "@/lib/types/admin.types";
 import type { User } from "@/lib/types/user.types";
 
@@ -37,6 +41,40 @@ export function useAdminMembershipTierOptions(options?: { enabled?: boolean }) {
     queryKey: ["admin", "membership-tier-options"],
     queryFn: ({ signal }) => fetchAdminMembershipTierOptions(signal),
     enabled: options?.enabled ?? true,
+  });
+}
+
+export function useMembershipInvitations(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ["admin", "membership-invitations"],
+    queryFn: ({ signal }) => fetchMembershipInvitations(signal),
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useCreateMembershipInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (body: CreateMembershipInvitationRequest) => createMembershipInvitation(body),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["admin", "membership-invitations"],
+      });
+    },
+  });
+}
+
+export function useDeleteMembershipInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => deleteMembershipInvitation(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["admin", "membership-invitations"],
+      });
+    },
   });
 }
 

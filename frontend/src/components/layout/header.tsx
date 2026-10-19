@@ -6,9 +6,9 @@ import {
   Logs,
   LogOut,
   Menu,
+  TicketCheck,
   UserRound,
   UsersRound,
-  WalletCards,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -68,6 +68,12 @@ function AdminMenuLinks() {
             icon={<Logs aria-hidden="true" className="size-4" />}
           >
             Audit logs
+          </DropdownLink>
+          <DropdownLink
+            href="/admin/membership-invitations"
+            icon={<TicketCheck aria-hidden="true" className="size-4" />}
+          >
+            Membership Invitations
           </DropdownLink>
           <DropdownLink
             href="/admin/analytics"

@@ -27,6 +27,12 @@ type studentInfoUpdate struct {
 	studentID string
 }
 
+type execProfileUpdate struct {
+	title        pgtype.Text
+	displayOrder pgtype.Int4
+	displayGroup db.NullExecDisplayGroupType
+}
+
 // fakeAdminStore is an in-memory repository.AdminStore for exercising the admin
 // service without a database.
 type fakeAdminStore struct {
@@ -49,6 +55,7 @@ type fakeAdminStore struct {
 	cancelledMembershipIDs   []string
 	cancelMembershipResult   bool
 	cancelMembershipErr      error
+	execProfileUpdates       []execProfileUpdate
 
 	auditLogs []db.CreateAdminAuditLogParams
 }
@@ -169,6 +176,29 @@ func (f *fakeAdminStore) UpdateUserRole(_ context.Context, _ string, role db.Rol
 func (f *fakeAdminStore) AddUserGroup(_ context.Context, _ string, group db.GroupType) error {
 	f.addedGroups = append(f.addedGroups, group)
 	return nil
+}
+
+func (f *fakeAdminStore) CreateExecProfile(ctx context.Context, userId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType) error {
+	return nil
+}
+func (f *fakeAdminStore) HasExecProfile(ctx context.Context, userId string) (bool, error) {
+	return false, nil
+}
+func (f *fakeAdminStore) HasExecGroup(ctx context.Context, userId string) (bool, error) {
+	return false, nil
+}
+
+func (f *fakeAdminStore) RemoveExecProfile(_ context.Context, _ string) error {
+	return nil
+}
+
+func (f *fakeAdminStore) UpdateExecProfile(_ context.Context, _ string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType) (db.GetExecProfileByUserIDRow, error) {
+	f.execProfileUpdates = append(f.execProfileUpdates, execProfileUpdate{
+		title:        title,
+		displayOrder: displayOrder,
+		displayGroup: displayGroup,
+	})
+	return db.GetExecProfileByUserIDRow{}, nil
 }
 
 func (f *fakeAdminStore) RemoveUserGroup(_ context.Context, _ string, group db.GroupType) error {

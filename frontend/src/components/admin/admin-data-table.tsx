@@ -31,7 +31,7 @@ export function DataTable<T>({
 }: DataTableProps<T>) {
   if (isLoading) {
     return (
-      <SurfacePanel className="flex min-h-[450px] flex-1 flex-col">
+      <SurfacePanel className="flex min-h-112.5 flex-1 flex-col">
         <div className="flex flex-1 items-center justify-center gap-3">
           <Loader2 aria-hidden="true" className="size-5 animate-spin" />
           <span>{loadingLabel}</span>
@@ -42,7 +42,7 @@ export function DataTable<T>({
 
   if (data.length === 0) {
     return (
-      <SurfacePanel className="flex min-h-[450px] flex-1 flex-col">
+      <SurfacePanel className="flex min-h-112.5 flex-1 flex-col">
         <div className="flex flex-1 items-center justify-center px-6 py-12 text-brand-text-muted">
           <span>{emptyLabel}</span>
         </div>
@@ -51,13 +51,13 @@ export function DataTable<T>({
   }
 
   return (
-    <SurfacePanel className="flex min-h-[450px] flex-1 flex-col overflow-hidden">
+    <SurfacePanel className="flex min-h-112.5 flex-1 flex-col overflow-hidden">
       <div
-        className={`min-h-[450px] flex-1 overflow-auto ${isFetching ? "opacity-70 transition-opacity" : ""}`}
+        className={`min-h-112.5 flex-1 overflow-auto ${isFetching ? "opacity-70 transition-opacity" : ""}`}
       >
         <table className="min-w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-brand-border bg-white/[0.02]">
+            <tr className="border-b border-brand-border bg-white/2">
               {columns.map((column) => (
                 <th
                   key={column.header}
@@ -90,7 +90,7 @@ export function DataTable<T>({
                 }
                 className={`border-b border-brand-border/70 last:border-b-0 ${
                   onRowClick
-                    ? "cursor-pointer transition-colors hover:bg-white/[0.04] focus-within:bg-white/[0.04]"
+                    ? "cursor-pointer transition-colors hover:bg-white/4s-within:bg-white/[0.04]"
                     : ""
                 }`}
               >
