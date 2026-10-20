@@ -47,7 +47,7 @@ export function useUser(userId: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["admin", "user", userId],
     queryFn: ({ signal }) => fetchUser(userId, signal),
-    enabled: (options?.enabled ?? true) && Boolean(userId),
+    enabled: options?.enabled !== false && !!userId,
     // A 404 for an unknown user is a final answer, not a transient failure.
     retry: false,
   });
@@ -57,7 +57,7 @@ export function useUserMemberships(userId: string, options?: { enabled?: boolean
   return useQuery({
     queryKey: ["admin", "user", userId, "memberships"],
     queryFn: ({ signal }) => fetchUserMemberships(userId, signal),
-    enabled: (options?.enabled ?? true) && Boolean(userId),
+    enabled: options?.enabled !== false && !!userId,
     retry: false,
   });
 }
@@ -66,7 +66,7 @@ export function useAdminEligibleMemberships(userId: string, options?: { enabled?
   return useQuery({
     queryKey: ["admin", "user", userId, "eligible-memberships"],
     queryFn: ({ signal }) => fetchEligibleMembershipsForUser(userId, signal),
-    enabled: (options?.enabled ?? true) && Boolean(userId),
+    enabled: options?.enabled !== false && !!userId,
     retry: false,
   });
 }
@@ -112,7 +112,7 @@ export function useAdminExecProfile(userId: string, options?: { enabled?: boolea
   return useQuery({
     queryKey: ["admin", "user", userId, "exec-profile"],
     queryFn: ({ signal }) => fetchAdminExecProfile(userId, signal),
-    enabled: (options?.enabled ?? true) && Boolean(userId),
+    enabled: options?.enabled !== false && !!userId,
     retry: false,
   });
 }

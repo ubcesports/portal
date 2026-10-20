@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/ubcesports/memberships/internal/database/db"
 	"github.com/ubcesports/memberships/internal/dto"
 	"github.com/ubcesports/memberships/internal/repository"
@@ -43,7 +45,7 @@ func (s *ExecProfileService) GetExecProfileByUserID(ctx context.Context, userId 
 		return nil, fmt.Errorf("get exec profile: %w", err)
 	}
 
-	return buildExecProfile(row)
+	return buildExecProfileFields(row.FullName, row.AvatarUrl, row.Title, row.DisplayGroup, row.SocialLinks)
 }
 
 func (s *ExecProfileService) UpdateExecSocialLink(ctx context.Context, userId string, platform db.ExecSocialPlatformType, url string) error {
@@ -73,8 +75,12 @@ func (s *ExecProfileService) UpdateExecProfileTitle(ctx context.Context, userId 
 */
 
 func buildExecProfile(row db.GetExecProfilesRow) (*dto.ExecProfileDTO, error) {
+	return buildExecProfileFields(row.FullName, row.AvatarUrl, row.Title, row.DisplayGroup, row.SocialLinks)
+}
+
+func buildExecProfileFields(fullName string, avatarURL pgtype.Text, title string, displayGroup db.ExecDisplayGroupType, socialLinksValue interface{}) (*dto.ExecProfileDTO, error) {
 	// Unmarshal the social links JSON into a slice of ExecProfileSocialLinkDTO
-	socialLinksJSON, err := json.Marshal(row.SocialLinks)
+	socialLinksJSON, err := json.Marshal(socialLinksValue)
 	if err != nil {
 		return nil, fmt.Errorf("marshal social links: %w", err)
 	}
@@ -85,10 +91,10 @@ func buildExecProfile(row db.GetExecProfilesRow) (*dto.ExecProfileDTO, error) {
 
 	// Build exec profile DTO
 	execProfile := &dto.ExecProfileDTO{
-		FullName:     row.FullName,
-		AvatarURL:    util.TextPointer(row.AvatarUrl),
-		Title:        row.Title,
-		DisplayGroup: dto.ExecDisplayGroupType(row.DisplayGroup),
+		FullName:     fullName,
+		AvatarURL:    util.TextPointer(avatarURL),
+		Title:        title,
+		DisplayGroup: dto.ExecDisplayGroupType(displayGroup),
 		SocialLinks:  socialLinks,
 	}
 

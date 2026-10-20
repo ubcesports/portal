@@ -3,8 +3,6 @@ package repository
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
-
 	"github.com/ubcesports/memberships/internal/database/db"
 	"github.com/ubcesports/memberships/internal/util"
 )
@@ -21,24 +19,13 @@ func (r *ExecProfileRepository) GetExecProfiles(ctx context.Context) ([]db.GetEx
 	return r.store.GetExecProfiles(ctx)
 }
 
-func (r *ExecProfileRepository) GetExecProfileByUserID(ctx context.Context, userId string) (db.GetExecProfilesRow, error) {
+func (r *ExecProfileRepository) GetExecProfileByUserID(ctx context.Context, userId string) (db.GetExecProfileWithSocialLinksByUserIDRow, error) {
 	pgUserId, err := util.GetValidatedUUID(userId)
 	if err != nil {
-		return db.GetExecProfilesRow{}, err
+		return db.GetExecProfileWithSocialLinksByUserIDRow{}, err
 	}
 
-	profiles, err := r.store.GetExecProfiles(ctx)
-	if err != nil {
-		return db.GetExecProfilesRow{}, err
-	}
-
-	for _, profile := range profiles {
-		if profile.UserID == pgUserId {
-			return profile, nil
-		}
-	}
-
-	return db.GetExecProfilesRow{}, pgx.ErrNoRows
+	return r.store.GetExecProfileWithSocialLinksByUserID(ctx, pgUserId)
 }
 
 func (r *ExecProfileRepository) UpdateExecProfileByUserID(ctx context.Context, userId string, title string, displayOrder int32, displayGroup db.GroupType) (db.GetExecProfileByUserIDRow, error) {

@@ -117,7 +117,7 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
 
           <UserProfilePanel user={user} onSave={handleSave} isSaving={isSaving} />
 
-          {hasExecGroup ? <AdminExecProfilePanel userId={userId} /> : null}
+          {hasExecGroup && <AdminExecProfilePanel userId={userId} />}
 
           {areMembershipsPending ? (
             <div className="flex items-center gap-3 border border-brand-border px-5 py-6 text-sm text-brand-text-muted">
