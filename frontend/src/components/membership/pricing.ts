@@ -3,6 +3,7 @@ import type {
   MembershipExpirationType,
   MembershipTier,
   MembershipTierPrice,
+  TierUnavailableReason,
 } from "@/lib/types/membership.types";
 
 const STUDENT_LABELS: Record<string, string> = {
@@ -81,12 +82,46 @@ export function getFallbackPrice(tier: MembershipTier) {
   return getPriceByStudentStatus(tier, true) ?? tier.prices[0];
 }
 
-export function purchaseLabel(tier: EligibleMembershipTier) {
+export function purchaseLabel(tier: Extract<EligibleMembershipTier, { eligible: true }>) {
   if (tier.purchase_type === "upgrade") {
     return `Upgrade to ${tier.title}`;
   }
 
   return "Choose this pass";
+}
+
+const UNAVAILABLE_REASON_LABELS: Record<TierUnavailableReason, string> = {
+  already_owned: "Membership already owned",
+  not_eligible_current_membership: "Not eligible with current membership",
+  executive_restricted: "Executives not eligible",
+  competitive_restricted: "Competitive players not eligible",
+  purchase_closed: "Purchase opens on {date}",
+  unavailable: "Not currently available",
+};
+
+const FALLBACK_UNAVAILABLE_MESSAGE = "Not currently available";
+
+// Renders why a tier isn't currently purchasable. Falls back to the generic
+// message for a reason the frontend doesn't recognize (eg. after a backend
+// deploy adds a new one this build predates), rather than showing nothing
+// or throwing.
+export function unavailableMessage(tier: Extract<EligibleMembershipTier, { eligible: false }>) {
+  const label = UNAVAILABLE_REASON_LABELS[tier.unavailable_reason];
+  if (!label) {
+    return FALLBACK_UNAVAILABLE_MESSAGE;
+  }
+
+  if (tier.unavailable_reason === "purchase_closed") {
+    if (!tier.purchase_opens_at) {
+      return FALLBACK_UNAVAILABLE_MESSAGE;
+    }
+    return label.replace(
+      "{date}",
+      VANCOUVER_DATE_FORMATTER.format(new Date(tier.purchase_opens_at)),
+    );
+  }
+
+  return label;
 }
 
 export function isMembershipTierPrice(

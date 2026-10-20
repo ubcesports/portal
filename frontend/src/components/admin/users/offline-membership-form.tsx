@@ -7,6 +7,7 @@ import { ActionButton } from "@/components/action-button";
 import { SurfacePanel } from "@/components/surface-panel";
 import { useAddOfflineMembership, useAdminEligibleMemberships } from "@/lib/admin/admin.hook";
 import type { OfflinePaymentMethod } from "@/lib/types/admin.types";
+import type { EligibleMembershipTier } from "@/lib/types/membership.types";
 import { formatMembershipPrice } from "@/components/membership/pricing";
 import { titleCase } from "@/lib/utils/groups";
 
@@ -24,6 +25,7 @@ type OfflineMembershipFormProps = {
 
 export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
   const [tierId, setTierId] = useState("");
+  const [amountPaid, setAmountPaid] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<OfflinePaymentMethod | "">("");
   const {
     data: eligibleMemberships = [],
@@ -34,9 +36,21 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
   } = useAdminEligibleMemberships(userId);
   const { mutateAsync: addMembership, isPending: isAdding } = useAddOfflineMembership(userId);
 
+  // Manually granting a membership only makes sense for tiers this user can
+  // actually receive; the endpoint now also returns ineligible tiers (with a
+  // reason instead of a price) for the public pricing page's benefit, so
+  // this form filters them back out locally.
+  const purchasableMemberships = useMemo(
+    () =>
+      eligibleMemberships.filter(
+        (tier): tier is Extract<EligibleMembershipTier, { eligible: true }> => tier.eligible,
+      ),
+    [eligibleMemberships],
+  );
+
   const selectedTier = useMemo(
-    () => eligibleMemberships.find((tier) => tier.id === tierId),
-    [eligibleMemberships, tierId],
+    () => purchasableMemberships.find((tier) => tier.id === tierId),
+    [purchasableMemberships, tierId],
   );
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -47,12 +61,23 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
       return;
     }
 
+    const dollars = Number(amountPaid);
+    if (amountPaid.trim() === "" || !Number.isFinite(dollars) || dollars < 0) {
+      toast.error("Enter a valid amount paid");
+      return;
+    }
+
     try {
-      await addMembership({ tier_id: selectedTier.id, payment_method: paymentMethod });
+      await addMembership({
+        tier_id: selectedTier.id,
+        amount_paid_cents: Math.round(dollars * 100),
+        payment_method: paymentMethod,
+      });
       toast.success(`${selectedTier.title} membership added`, {
-        description: `Recorded as ${PAYMENT_METHODS.find(({ value }) => value === paymentMethod)?.label}.`,
+        description: `${formatMembershipPrice(dollars)} paid via ${PAYMENT_METHODS.find(({ value }) => value === paymentMethod)?.label}.`,
       });
       setTierId("");
+      setAmountPaid("");
       setPaymentMethod("");
     } catch {
       // The shared API client displays the server error.
@@ -91,28 +116,49 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
             </ActionButton>
           </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(13rem,0.45fr)_auto] lg:items-end">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(10rem,0.3fr)_minmax(13rem,0.45fr)_auto] lg:items-end">
             <label className="flex min-w-0 flex-col gap-1.5 text-sm text-brand-text-subtle">
               <span>Eligible membership</span>
               <select
                 value={tierId}
                 onChange={(event) => setTierId(event.target.value)}
-                disabled={isLoadingEligibility || isAdding || eligibleMemberships.length === 0}
+                disabled={isLoadingEligibility || isAdding || purchasableMemberships.length === 0}
                 className={FIELD_CLASS_NAME}
               >
                 <option value="">
                   {isLoadingEligibility
                     ? "Loading eligible memberships…"
-                    : eligibleMemberships.length === 0
+                    : purchasableMemberships.length === 0
                       ? "No eligible memberships"
                       : "Select a membership"}
                 </option>
-                {eligibleMemberships.map((tier) => (
+                {purchasableMemberships.map((tier) => (
                   <option key={tier.id} value={tier.id}>
                     {tier.program_name} — {tier.title} — {formatMembershipPrice(tier.prices.price)}
                   </option>
                 ))}
               </select>
+            </label>
+
+            <label className="flex flex-col gap-1.5 text-sm text-brand-text-subtle">
+              <span>Amount paid</span>
+              <div className="relative">
+                <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-brand-text-subtle">
+                  $
+                </span>
+                <input
+                  required
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.01"
+                  value={amountPaid}
+                  onChange={(event) => setAmountPaid(event.target.value)}
+                  placeholder="0.00"
+                  disabled={isAdding}
+                  className={`${FIELD_CLASS_NAME} pl-7`}
+                />
+              </div>
             </label>
 
             <label className="flex flex-col gap-1.5 text-sm text-brand-text-subtle">
@@ -136,7 +182,7 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
 
             <ActionButton
               type="submit"
-              disabled={!selectedTier || !paymentMethod}
+              disabled={!selectedTier || !amountPaid || !paymentMethod}
               loading={isAdding}
               icon={<Plus aria-hidden="true" className="size-4" />}
               loadingIcon={<Loader2 aria-hidden="true" className="size-4 animate-spin" />}
@@ -157,7 +203,7 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
             </div>
             <div>
               <span className="block text-xs uppercase tracking-wide text-brand-text-subtle">
-                Amount received
+                Eligible price
               </span>
               <span className="text-brand-text">
                 {formatMembershipPrice(selectedTier.prices.price)} CAD
@@ -172,7 +218,7 @@ export function OfflineMembershipForm({ userId }: OfflineMembershipFormProps) {
           </div>
         ) : null}
 
-        {!eligibilityFailed && !isLoadingEligibility && eligibleMemberships.length === 0 && (
+        {!eligibilityFailed && !isLoadingEligibility && purchasableMemberships.length === 0 && (
           <p className="mt-3 text-sm text-brand-text-muted" role="status">
             This user currently has no membership options they are eligible to receive.
           </p>

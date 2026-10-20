@@ -12,6 +12,8 @@ import type {
   AdminExecProfile,
   AdminExecProfileResponse,
   UpdateAdminExecProfileRequest,
+  CreateMembershipInvitationRequest,
+  MembershipInvitation,
 } from "@/lib/types/admin.types";
 import type { User } from "@/lib/types/user.types";
 import type { EligibleMembershipTier, Membership } from "../types/membership.types";
@@ -109,6 +111,31 @@ export async function addOfflineMembership(
   body: AddOfflineMembershipRequest,
 ): Promise<void> {
   await apiClient.post(`/admin/membership/add/${userId}`, body);
+}
+
+export async function fetchMembershipInvitations(
+  signal?: AbortSignal,
+): Promise<MembershipInvitation[]> {
+  const response = await apiClient.get<MembershipInvitation[]>("/admin/membership-invitations", {
+    signal,
+  });
+
+  return response.data ?? [];
+}
+
+export async function createMembershipInvitation(
+  body: CreateMembershipInvitationRequest,
+): Promise<MembershipInvitation> {
+  const response = await apiClient.post<MembershipInvitation>(
+    "/admin/membership-invitations",
+    body,
+  );
+
+  return response.data;
+}
+
+export async function deleteMembershipInvitation(id: string): Promise<void> {
+  await apiClient.delete(`/admin/membership-invitations/${id}`);
 }
 
 export async function updateUser(userId: string, body: UpdateUserRequest): Promise<User> {

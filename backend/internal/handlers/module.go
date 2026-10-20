@@ -10,5 +10,6 @@ var Module = fx.Module("handler",
 		NewExecProfileHandler,
 		NewMembershipHandler,
 		NewStripeWebhookHandler,
+		NewMembershipInvitationHandler,
 	),
 )
