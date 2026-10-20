@@ -167,25 +167,19 @@ func (s *MembershipService) CreateCheckoutSession(ctx context.Context, userId st
 		return nil, err
 	}
 
-	// 2. Check if user is eligible for this tier
+	// 2. Check if user is eligible for this tier. GetEligibleTiers already
+	// accounts for the purchase window (an otherwise-eligible tier while
+	// purchases are closed comes back with Eligible: false), so there's no
+	// separate closed-window check needed here.
 	var selectedTier *dto.EligibleMembershipTierDTO
-	for _, t := range eligibleTiers {
-		if req.TierId == t.ID {
-			selectedTier = &t
+	for i := range eligibleTiers {
+		if eligibleTiers[i].ID == req.TierId && eligibleTiers[i].Eligible {
+			selectedTier = &eligibleTiers[i]
 			break
 		}
 	}
 	if selectedTier == nil {
 		return nil, ErrTierNotEligible
-	}
-
-	// 3. Check whether purchases are currently closed.
-	isClosed, err := membershippolicy.IsPurchaseClosed(time.Now(), selectedTier.ExpirationType)
-	if err != nil {
-		return nil, err
-	}
-	if isClosed {
-		return nil, ErrMembershipPurchaseClosed
 	}
 
 	// Get user profile to create checkout session with their email
@@ -194,7 +188,7 @@ func (s *MembershipService) CreateCheckoutSession(ctx context.Context, userId st
 		return nil, err
 	}
 
-	// 4. If there is a pending transaction, then expire it and its stripe checkout session
+	// 3. If there is a pending transaction, then expire it and its stripe checkout session
 	var transactionId string
 	err = s.membershipRepo.WithTx(ctx, func(mr *repository.MembershipRepository) error {
 		pending, err := mr.GetPendingTransactionForUpdate(ctx, userId)
@@ -240,7 +234,7 @@ func (s *MembershipService) CreateCheckoutSession(ctx context.Context, userId st
 		return nil, err
 	}
 
-	// 5. Create new pending transaction and checkout session
+	// 4. Create new pending transaction and checkout session
 
 	// Create stripe checkout session
 	session, err := s.stripeClient.CreateCheckoutSession(ctx, stripeclient.CheckoutSessionRequest{
@@ -329,11 +323,14 @@ func (s *MembershipService) AddMembershipToUser(ctx context.Context, actorId str
 		return err
 	}
 
-	// 2. Check if user is eligible for this tier
+	// 2. Check if user is eligible for this tier. GetEligibleTiers already
+	// accounts for the purchase window (an otherwise-eligible tier while
+	// purchases are closed comes back with Eligible: false), so there's no
+	// separate closed-window check needed here.
 	var selectedTier *dto.EligibleMembershipTierDTO
-	for _, t := range eligibleTiers {
-		if addMembershipRequest.TierId == t.ID {
-			selectedTier = &t
+	for i := range eligibleTiers {
+		if eligibleTiers[i].ID == addMembershipRequest.TierId && eligibleTiers[i].Eligible {
+			selectedTier = &eligibleTiers[i]
 			break
 		}
 	}
@@ -347,7 +344,6 @@ func (s *MembershipService) AddMembershipToUser(ctx context.Context, actorId str
 		return err
 	}
 
-	// 3. Check whether purchases are currently closed.
 	purchasedAt := time.Now()
 	amountPaidCents := addMembershipRequest.AmountPaidCents
 	isClosed, err := membershippolicy.IsPurchaseClosed(purchasedAt, selectedTier.ExpirationType)
@@ -358,7 +354,7 @@ func (s *MembershipService) AddMembershipToUser(ctx context.Context, actorId str
 		return ErrMembershipPurchaseClosed
 	}
 
-	// 4. If there is a pending transaction, then expire it
+	// 3. If there is a pending transaction, then expire it
 	err = s.membershipRepo.WithTx(ctx, func(mr *repository.MembershipRepository) error {
 		pending, err := mr.GetPendingTransactionForUpdate(ctx, targetUserId)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
@@ -389,7 +385,7 @@ func (s *MembershipService) AddMembershipToUser(ctx context.Context, actorId str
 			}
 		}
 
-		// 5. Create new membership and transaction
+		// 4. Create new membership and transaction
 
 		// Create new pending transaction
 		transactionId, err := mr.CreatePendingTransaction(ctx, repository.CreatePendingTransactionParams{
@@ -418,7 +414,7 @@ func (s *MembershipService) AddMembershipToUser(ctx context.Context, actorId str
 			return err
 		}
 
-		// 7. Create the fulfilled membership.
+		// 5. Create the fulfilled membership.
 		expiresAt, err := membershippolicy.MembershipExpiresAt(purchasedAt, dto.MembershipExpirationType(transaction.ExpirationType))
 		if err != nil {
 			return err
@@ -433,7 +429,7 @@ func (s *MembershipService) AddMembershipToUser(ctx context.Context, actorId str
 			return err
 		}
 
-		// 8. Record payment details and mark the transaction completed.
+		// 6. Record payment details and mark the transaction completed.
 		if err := mr.CompleteTransaction(ctx, repository.CompleteTransactionParams{
 			TransactionId:         transaction.ID.String(),
 			MembershipId:          membershipId,
