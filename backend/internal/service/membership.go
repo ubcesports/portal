@@ -44,6 +44,7 @@ var (
 	ErrPendingCheckoutAlreadyPaid = errors.New("A previous checkout payment is still being processed. Please wait a moment and refresh or contact an admin.")
 	ErrOfflinePaymentMethod       = errors.New("Manual membership addition only accepts cash or etransfer.")
 	ErrInvalidMembershipTier      = errors.New("A valid membership tier ID is required.")
+	ErrInvalidMembershipAmount    = errors.New("Amount paid must be zero or greater.")
 )
 
 const actionMembershipAdded = "user.membership.added"
@@ -308,6 +309,9 @@ func (s *MembershipService) AddMembershipToUser(ctx context.Context, actorId str
 	if _, err := util.GetValidatedUUID(addMembershipRequest.TierId); err != nil {
 		return ErrInvalidMembershipTier
 	}
+	if addMembershipRequest.AmountPaidCents < 0 {
+		return ErrInvalidMembershipAmount
+	}
 
 	// 1. Let the centralized eligibility service determine whether the
 	// requested tier can be purchased, its purchase type, and final price.
@@ -341,7 +345,14 @@ func (s *MembershipService) AddMembershipToUser(ctx context.Context, actorId str
 	}
 
 	purchasedAt := time.Now()
-	amountPaidCents := int64(math.Round(selectedTier.Price.Price * 100))
+	amountPaidCents := addMembershipRequest.AmountPaidCents
+	isClosed, err := membershippolicy.IsPurchaseClosed(purchasedAt, selectedTier.ExpirationType)
+	if err != nil {
+		return err
+	}
+	if isClosed {
+		return ErrMembershipPurchaseClosed
+	}
 
 	// 3. If there is a pending transaction, then expire it
 	err = s.membershipRepo.WithTx(ctx, func(mr *repository.MembershipRepository) error {

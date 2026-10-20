@@ -286,3 +286,54 @@ WHERE (
     sqlc.narg(actor_name)::text IS NULL
     OR actor.full_name ILIKE '%' || sqlc.narg(actor_name)::text || '%'
 );
+
+
+-- name: CreateExecProfile :exec
+INSERT INTO exec_profile (
+    user_id, 
+    title,
+    display_order,
+    display_group
+) VALUES (
+    sqlc.narg('user_id')::uuid,
+    sqlc.narg('title')::text,
+    sqlc.narg('display_order')::int,
+    sqlc.narg('display_group')::exec_display_group_type
+);
+
+-- name: HasExecProfileForUser :one
+SELECT EXISTS (
+    SELECT 1 
+    FROM exec_profile
+    WHERE user_id = $1
+);
+
+-- name: HasExecGroupForUser :one
+SELECT EXISTS (
+    SELECT 1 
+    FROM user_groups
+    WHERE user_id = $1
+        AND "group" IN ('executive', 'director', 'board')
+);
+
+-- name: RemoveExecProfile :exec
+DELETE FROM exec_profile
+WHERE user_id = $1;
+
+-- name: UpdateExecProfile :exec
+UPDATE exec_profile
+SET
+    title = COALESCE(sqlc.narg('title'), title),
+    display_order = COALESCE(sqlc.narg('display_order'), display_order),
+    display_group = COALESCE(sqlc.narg('display_group'), display_group),
+    updated_at = NOW()
+WHERE user_id = sqlc.narg('user_id');
+
+-- name: GetExecProfileByUserID :one
+SELECT
+    user_id,
+    title,
+    display_order,
+    display_group
+FROM exec_profile
+WHERE user_id = $1;

@@ -29,6 +29,11 @@ type AdminStore interface {
 	StudentIDExists(ctx context.Context, studentId string) (bool, error)
 	UpdateUserRole(ctx context.Context, userId string, role db.RoleType) error
 	AddUserGroup(ctx context.Context, userId string, group db.GroupType) error
+	CreateExecProfile(ctx context.Context, userId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType) error
+	HasExecProfile(ctx context.Context, userId string) (bool, error)
+	HasExecGroup(ctx context.Context, userId string) (bool, error)
+	RemoveExecProfile(ctx context.Context, userId string) error
+	UpdateExecProfile(ctx context.Context, userId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType) (db.GetExecProfileByUserIDRow, error)
 	RemoveUserGroup(ctx context.Context, userId string, group db.GroupType) error
 	GetUserMemberships(ctx context.Context, userId string) ([]db.GetAllMembershipsWithTransactionsRow, error)
 	HasActiveMembership(ctx context.Context, userId string) (bool, error)
@@ -195,6 +200,81 @@ func (r *AdminRepository) AddUserGroup(ctx context.Context, userId string, group
 		return fmt.Errorf("add user group: %w", err)
 	}
 	return nil
+}
+
+func (r *AdminRepository) CreateExecProfile(ctx context.Context, userId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType) error {
+	pgUserId, err := util.GetValidatedUUID(userId)
+	if err != nil {
+		return err
+	}
+
+	err = r.store.CreateExecProfile(ctx, db.CreateExecProfileParams{
+		UserID:       pgUserId,
+		Title:        title,
+		DisplayOrder: displayOrder,
+		DisplayGroup: displayGroup,
+	})
+	if err != nil {
+		return fmt.Errorf("create exec profile: %w", err)
+	}
+	return nil
+}
+
+func (r *AdminRepository) HasExecProfile(ctx context.Context, userId string) (bool, error) {
+	pgUserId, err := util.GetValidatedUUID(userId)
+	if err != nil {
+		return false, err
+	}
+
+	exists, err := r.store.HasExecProfileForUser(ctx, pgUserId)
+	if err != nil {
+		return false, fmt.Errorf("check existing exec profile: %w", err)
+	}
+	return exists, err
+}
+
+func (r *AdminRepository) HasExecGroup(ctx context.Context, userId string) (bool, error) {
+	pgUserId, err := util.GetValidatedUUID(userId)
+	if err != nil {
+		return false, err
+	}
+
+	exists, err := r.store.HasExecGroupForUser(ctx, pgUserId)
+	if err != nil {
+		return false, fmt.Errorf("check existing exec groups: %w", err)
+	}
+	return exists, err
+}
+
+func (r *AdminRepository) RemoveExecProfile(ctx context.Context, userId string) error {
+	pgUserId, err := util.GetValidatedUUID(userId)
+	if err != nil {
+		return err
+	}
+	return r.store.RemoveExecProfile(ctx, pgUserId)
+}
+
+func (r *AdminRepository) UpdateExecProfile(ctx context.Context, userId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType) (db.GetExecProfileByUserIDRow, error) {
+	pgUserId, err := util.GetValidatedUUID(userId)
+	if err != nil {
+		return db.GetExecProfileByUserIDRow{}, err
+	}
+
+	err = r.store.UpdateExecProfile(ctx, db.UpdateExecProfileParams{
+		UserID:       pgUserId,
+		Title:        title,
+		DisplayOrder: displayOrder,
+		DisplayGroup: displayGroup,
+	})
+	if err != nil {
+		return db.GetExecProfileByUserIDRow{}, fmt.Errorf("update exec profile: %w", err)
+	}
+
+	updatedProfile, err := r.store.GetExecProfileByUserID(ctx, pgUserId)
+	if err != nil {
+		return db.GetExecProfileByUserIDRow{}, fmt.Errorf("get updated exec profile: %w", err)
+	}
+	return updatedProfile, nil
 }
 
 func (r *AdminRepository) RemoveUserGroup(ctx context.Context, userId string, group db.GroupType) error {

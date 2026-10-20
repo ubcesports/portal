@@ -81,6 +81,31 @@ export type OfflinePaymentMethod = Exclude<PaymentMethod, "stripe">;
 
 export type AddOfflineMembershipRequest = {
   tier_id: string;
+  amount_paid_cents: number;
+  payment_method: OfflinePaymentMethod;
+};
+
+export type MembershipInvitation = {
+  id: string;
+  email: string;
+  tier_id: string;
+  tier_title: string;
+  program_name: string;
+  amount_paid_cents: number;
+  payment_method: OfflinePaymentMethod;
+  done: boolean;
+  created_by_user_id: string;
+  created_by_name: string;
+  invitation_sent_at: string | null;
+  purchased_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateMembershipInvitationRequest = {
+  email: string;
+  tier_id: string;
+  amount_paid_cents: number;
   payment_method: OfflinePaymentMethod;
 };
 

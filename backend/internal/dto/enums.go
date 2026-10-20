@@ -15,6 +15,17 @@ const (
 	GroupExecutive       GroupType = "executive"
 	GroupDirector        GroupType = "director"
 	GroupBoard           GroupType = "board"
+	GroupPresident       GroupType = "president"
+)
+
+type ExecDisplayGroupType string
+
+const (
+	ExecDisplayGroupTypePresident       ExecDisplayGroupType = "president"
+	ExecDisplayGroupTypeBoard           ExecDisplayGroupType = "board"
+	ExecDisplayGroupTypeCentralDirector ExecDisplayGroupType = "central_director"
+	ExecDisplayGroupTypeGameDirector    ExecDisplayGroupType = "game_director"
+	ExecDisplayGroupTypeExecutive       ExecDisplayGroupType = "executive"
 )
 
 type TransactionStatusType string
@@ -67,4 +78,15 @@ const (
 	ReasonCompetitiveRestricted TierUnavailableReason = "competitive_restricted"
 	ReasonPurchaseClosed        TierUnavailableReason = "purchase_closed"
 	ReasonUnavailable           TierUnavailableReason = "unavailable"
+)
+
+type ExecSocialPlatformType string
+
+const (
+	ExecSocialPlatformInstagram ExecSocialPlatformType = "instagram"
+	ExecSocialPlatformX         ExecSocialPlatformType = "x"
+	ExecSocialPlatformTwitch    ExecSocialPlatformType = "twitch"
+	ExecSocialPlatformYoutube   ExecSocialPlatformType = "youtube"
+	ExecSocialPlatformTiktok    ExecSocialPlatformType = "tiktok"
+	ExecSocialPlatformLinkedIn  ExecSocialPlatformType = "linkedin"
 )
