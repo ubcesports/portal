@@ -33,6 +33,7 @@ type AdminStore interface {
 	HasExecProfile(ctx context.Context, userId string) (bool, error)
 	HasExecGroup(ctx context.Context, userId string) (bool, error)
 	RemoveExecProfile(ctx context.Context, userId string) error
+	GetExecProfile(ctx context.Context, userId string) (db.GetExecProfileByUserIDRow, error)
 	UpdateExecProfile(ctx context.Context, userId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType) (db.GetExecProfileByUserIDRow, error)
 	RemoveUserGroup(ctx context.Context, userId string, group db.GroupType) error
 	GetUserMemberships(ctx context.Context, userId string) ([]db.GetAllMembershipsWithTransactionsRow, error)
@@ -252,6 +253,19 @@ func (r *AdminRepository) RemoveExecProfile(ctx context.Context, userId string) 
 		return err
 	}
 	return r.store.RemoveExecProfile(ctx, pgUserId)
+}
+
+func (r *AdminRepository) GetExecProfile(ctx context.Context, userId string) (db.GetExecProfileByUserIDRow, error) {
+	pgUserId, err := util.GetValidatedUUID(userId)
+	if err != nil {
+		return db.GetExecProfileByUserIDRow{}, err
+	}
+
+	profile, err := r.store.GetExecProfileByUserID(ctx, pgUserId)
+	if err != nil {
+		return db.GetExecProfileByUserIDRow{}, fmt.Errorf("get exec profile: %w", err)
+	}
+	return profile, nil
 }
 
 func (r *AdminRepository) UpdateExecProfile(ctx context.Context, userId string, title pgtype.Text, displayOrder pgtype.Int4, displayGroup db.NullExecDisplayGroupType) (db.GetExecProfileByUserIDRow, error) {
