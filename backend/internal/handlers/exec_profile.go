@@ -53,6 +53,7 @@ func (h *ExecProfileHandler) GetExecProfiles(w http.ResponseWriter, r *http.Requ
 
 	groupedProfiles := groupExecProfilesByDisplayGroup(execProfiles)
 	w.Header().Set("Content-Type", "application/json")
+	util.SetPublicCacheHeader(w, 300, 900, 300)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"execs": groupedProfiles,
 	})

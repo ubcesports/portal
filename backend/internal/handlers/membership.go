@@ -44,6 +44,7 @@ Raises:
 func (h *MembershipHandler) GetPublicTiersWithPrices(w http.ResponseWriter, r *http.Request) {
 	requestID := middleware.GetReqID(r.Context())
 	tiers, err := h.membershipService.GetPublicTiersAndPrices(r.Context())
+	util.SetPublicCacheHeader(w, 60, 300, 60)
 	if err != nil {
 		slog.ErrorContext(r.Context(), "unable to load public membership tiers", "error", err, "request_id", requestID)
 		util.WriteApiResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load membership tiers", requestID)
