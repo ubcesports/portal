@@ -34,6 +34,7 @@ type RouterParams struct {
 	MembershipInvitationHandler *handlers.MembershipInvitationHandler
 	StripeWebhookHandler        *handlers.StripeWebhookHandler
 	AnalyticsHandler            *handlers.AnalyticsHandler
+	LoungeHandler               *handlers.LoungeHandler
 	AdminRepository             *repository.AdminRepository
 	Limen                       *limen.Limen
 }
@@ -54,6 +55,8 @@ func provideRouter(params RouterParams) *chi.Mux {
 	r.Get("/membership/tiers", params.MembershipHandler.GetPublicTiersWithPrices)
 	r.Post("/webhooks/stripe", params.StripeWebhookHandler.Handle)
 	r.Get("/exec-profiles", params.ExecProfileHandler.GetExecProfiles)
+	r.Get("/lounge/stations", params.LoungeHandler.GetStations)
+	r.Patch("/lounge/stations/{id}", params.LoungeHandler.UpdateStation)
 
 	// All protected routes
 	r.Group(func(r chi.Router) {
