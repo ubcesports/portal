@@ -32,6 +32,10 @@ export function buildAnalyticsParams(
     params.set("purchase_type", filters.purchaseType);
   }
 
+  if (filters.paymentMethod) {
+    params.set("payment_method", filters.paymentMethod);
+  }
+
   if (includeTimeFrame) {
     params.set("granularity", filters.granularity);
 

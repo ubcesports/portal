@@ -16,7 +16,8 @@ WITH args AS (
     SELECT
         $1::text AS program_name,
         $2::text[] AS tier_ids,
-        $3::boolean AS is_student
+        $3::boolean AS is_student,
+        $4::payment_method_type AS payment_method
 )
 SELECT COUNT(*)
 FROM memberships m
@@ -30,16 +31,32 @@ WHERE m.cancelled_at IS NULL
   AND (a.program_name IS NULL OR mp.program_name = a.program_name)
   AND (a.tier_ids IS NULL OR mt.id::text = ANY(a.tier_ids))
   AND (a.is_student IS NULL OR u.is_student = a.is_student)
+  AND (
+      a.payment_method IS NULL
+      OR EXISTS (
+          SELECT 1
+          FROM transactions t
+          WHERE t.membership_id = m.id
+            AND t.status = 'completed'
+            AND t.payment_method = a.payment_method
+      )
+  )
 `
 
 type GetActiveMembershipsCountParams struct {
-	ProgramName pgtype.Text
-	TierIds     []string
-	IsStudent   pgtype.Bool
+	ProgramName   pgtype.Text
+	TierIds       []string
+	IsStudent     pgtype.Bool
+	PaymentMethod NullPaymentMethodType
 }
 
 func (q *Queries) GetActiveMembershipsCount(ctx context.Context, arg GetActiveMembershipsCountParams) (int64, error) {
-	row := q.db.QueryRow(ctx, getActiveMembershipsCount, arg.ProgramName, arg.TierIds, arg.IsStudent)
+	row := q.db.QueryRow(ctx, getActiveMembershipsCount,
+		arg.ProgramName,
+		arg.TierIds,
+		arg.IsStudent,
+		arg.PaymentMethod,
+	)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -51,7 +68,8 @@ WITH args AS (
         $1::text AS program_name,
         $2::text[] AS tier_ids,
         $3::boolean AS is_student,
-        $4::purchase_type AS purchase_type
+        $4::purchase_type AS purchase_type,
+        $5::payment_method_type AS payment_method
 )
 SELECT COALESCE(SUM(t.amount_paid_cents), 0)::bigint AS revenue_cents
 FROM transactions t
@@ -63,13 +81,15 @@ WHERE t.status = 'completed'
   AND (a.tier_ids IS NULL OR mt.id::text = ANY(a.tier_ids))
   AND (a.is_student IS NULL OR t.student_at_purchase = a.is_student)
   AND (a.purchase_type IS NULL OR t.purchase_type = a.purchase_type)
+  AND (a.payment_method IS NULL OR t.payment_method = a.payment_method)
 `
 
 type GetAllTimeRevenueCentsParams struct {
-	ProgramName  pgtype.Text
-	TierIds      []string
-	IsStudent    pgtype.Bool
-	PurchaseType NullPurchaseType
+	ProgramName   pgtype.Text
+	TierIds       []string
+	IsStudent     pgtype.Bool
+	PurchaseType  NullPurchaseType
+	PaymentMethod NullPaymentMethodType
 }
 
 func (q *Queries) GetAllTimeRevenueCents(ctx context.Context, arg GetAllTimeRevenueCentsParams) (int64, error) {
@@ -78,6 +98,7 @@ func (q *Queries) GetAllTimeRevenueCents(ctx context.Context, arg GetAllTimeReve
 		arg.TierIds,
 		arg.IsStudent,
 		arg.PurchaseType,
+		arg.PaymentMethod,
 	)
 	var revenue_cents int64
 	err := row.Scan(&revenue_cents)
@@ -92,7 +113,9 @@ WITH args AS (
         $3::timestamptz AS to_date,
         $4::text AS program_name,
         $5::text[] AS tier_ids,
-        $6::boolean AS is_student
+        $6::boolean AS is_student,
+        $7::purchase_type AS purchase_type,
+        $8::payment_method_type AS payment_method
 )
 SELECT
     date_trunc((SELECT granularity FROM args), t.created_at, 'UTC')::timestamptz AS bucket,
@@ -107,17 +130,21 @@ WHERE t.status = 'completed'
   AND (a.program_name IS NULL OR mp.program_name = a.program_name)
   AND (a.tier_ids IS NULL OR mt.id::text = ANY(a.tier_ids))
   AND (a.is_student IS NULL OR t.student_at_purchase = a.is_student)
+  AND (a.purchase_type IS NULL OR t.purchase_type = a.purchase_type)
+  AND (a.payment_method IS NULL OR t.payment_method = a.payment_method)
 GROUP BY bucket
 ORDER BY bucket
 `
 
 type GetMembershipsBoughtOverTimeParams struct {
-	Granularity string
-	FromDate    pgtype.Timestamptz
-	ToDate      pgtype.Timestamptz
-	ProgramName pgtype.Text
-	TierIds     []string
-	IsStudent   pgtype.Bool
+	Granularity   string
+	FromDate      pgtype.Timestamptz
+	ToDate        pgtype.Timestamptz
+	ProgramName   pgtype.Text
+	TierIds       []string
+	IsStudent     pgtype.Bool
+	PurchaseType  NullPurchaseType
+	PaymentMethod NullPaymentMethodType
 }
 
 type GetMembershipsBoughtOverTimeRow struct {
@@ -133,6 +160,8 @@ func (q *Queries) GetMembershipsBoughtOverTime(ctx context.Context, arg GetMembe
 		arg.ProgramName,
 		arg.TierIds,
 		arg.IsStudent,
+		arg.PurchaseType,
+		arg.PaymentMethod,
 	)
 	if err != nil {
 		return nil, err
@@ -161,7 +190,8 @@ WITH args AS (
         $4::text AS program_name,
         $5::text[] AS tier_ids,
         $6::boolean AS is_student,
-        $7::purchase_type AS purchase_type
+        $7::purchase_type AS purchase_type,
+        $8::payment_method_type AS payment_method
 )
 SELECT
     date_trunc((SELECT granularity FROM args), t.created_at, 'UTC')::timestamptz AS bucket,
@@ -177,18 +207,20 @@ WHERE t.status = 'completed'
   AND (a.tier_ids IS NULL OR mt.id::text = ANY(a.tier_ids))
   AND (a.is_student IS NULL OR t.student_at_purchase = a.is_student)
   AND (a.purchase_type IS NULL OR t.purchase_type = a.purchase_type)
+  AND (a.payment_method IS NULL OR t.payment_method = a.payment_method)
 GROUP BY bucket
 ORDER BY bucket
 `
 
 type GetRevenueOverTimeParams struct {
-	Granularity  string
-	FromDate     pgtype.Timestamptz
-	ToDate       pgtype.Timestamptz
-	ProgramName  pgtype.Text
-	TierIds      []string
-	IsStudent    pgtype.Bool
-	PurchaseType NullPurchaseType
+	Granularity   string
+	FromDate      pgtype.Timestamptz
+	ToDate        pgtype.Timestamptz
+	ProgramName   pgtype.Text
+	TierIds       []string
+	IsStudent     pgtype.Bool
+	PurchaseType  NullPurchaseType
+	PaymentMethod NullPaymentMethodType
 }
 
 type GetRevenueOverTimeRow struct {
@@ -205,6 +237,7 @@ func (q *Queries) GetRevenueOverTime(ctx context.Context, arg GetRevenueOverTime
 		arg.TierIds,
 		arg.IsStudent,
 		arg.PurchaseType,
+		arg.PaymentMethod,
 	)
 	if err != nil {
 		return nil, err
@@ -230,7 +263,7 @@ WITH args AS (
         $1::text AS program_name,
         $2::text[] AS tier_ids,
         $3::boolean AS is_student,
-        $4::purchase_type AS purchase_type
+        $4::payment_method_type AS payment_method
 )
 SELECT COUNT(DISTINCT t.user_id)
 FROM transactions t
@@ -241,14 +274,14 @@ WHERE t.status = 'completed'
   AND (a.program_name IS NULL OR mp.program_name = a.program_name)
   AND (a.tier_ids IS NULL OR mt.id::text = ANY(a.tier_ids))
   AND (a.is_student IS NULL OR t.student_at_purchase = a.is_student)
-  AND (a.purchase_type IS NULL OR t.purchase_type = a.purchase_type)
+  AND (a.payment_method IS NULL OR t.payment_method = a.payment_method)
 `
 
 type GetUniqueMembersCountParams struct {
-	ProgramName  pgtype.Text
-	TierIds      []string
-	IsStudent    pgtype.Bool
-	PurchaseType NullPurchaseType
+	ProgramName   pgtype.Text
+	TierIds       []string
+	IsStudent     pgtype.Bool
+	PaymentMethod NullPaymentMethodType
 }
 
 func (q *Queries) GetUniqueMembersCount(ctx context.Context, arg GetUniqueMembersCountParams) (int64, error) {
@@ -256,7 +289,7 @@ func (q *Queries) GetUniqueMembersCount(ctx context.Context, arg GetUniqueMember
 		arg.ProgramName,
 		arg.TierIds,
 		arg.IsStudent,
-		arg.PurchaseType,
+		arg.PaymentMethod,
 	)
 	var count int64
 	err := row.Scan(&count)

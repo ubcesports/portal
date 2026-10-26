@@ -3,7 +3,8 @@ WITH args AS (
     SELECT
         sqlc.narg('program_name')::text AS program_name,
         sqlc.narg('tier_ids')::text[] AS tier_ids,
-        sqlc.narg('is_student')::boolean AS is_student
+        sqlc.narg('is_student')::boolean AS is_student,
+        sqlc.narg('payment_method')::payment_method_type AS payment_method
 )
 SELECT COUNT(*)
 FROM memberships m
@@ -16,7 +17,17 @@ WHERE m.cancelled_at IS NULL
   AND m.expires_at > NOW()
   AND (a.program_name IS NULL OR mp.program_name = a.program_name)
   AND (a.tier_ids IS NULL OR mt.id::text = ANY(a.tier_ids))
-  AND (a.is_student IS NULL OR u.is_student = a.is_student);
+  AND (a.is_student IS NULL OR u.is_student = a.is_student)
+  AND (
+      a.payment_method IS NULL
+      OR EXISTS (
+          SELECT 1
+          FROM transactions t
+          WHERE t.membership_id = m.id
+            AND t.status = 'completed'
+            AND t.payment_method = a.payment_method
+      )
+  );
 
 -- name: GetAllTimeRevenueCents :one
 WITH args AS (
@@ -24,7 +35,8 @@ WITH args AS (
         sqlc.narg('program_name')::text AS program_name,
         sqlc.narg('tier_ids')::text[] AS tier_ids,
         sqlc.narg('is_student')::boolean AS is_student,
-        sqlc.narg('purchase_type')::purchase_type AS purchase_type
+        sqlc.narg('purchase_type')::purchase_type AS purchase_type,
+        sqlc.narg('payment_method')::payment_method_type AS payment_method
 )
 SELECT COALESCE(SUM(t.amount_paid_cents), 0)::bigint AS revenue_cents
 FROM transactions t
@@ -35,7 +47,8 @@ WHERE t.status = 'completed'
   AND (a.program_name IS NULL OR mp.program_name = a.program_name)
   AND (a.tier_ids IS NULL OR mt.id::text = ANY(a.tier_ids))
   AND (a.is_student IS NULL OR t.student_at_purchase = a.is_student)
-  AND (a.purchase_type IS NULL OR t.purchase_type = a.purchase_type);
+  AND (a.purchase_type IS NULL OR t.purchase_type = a.purchase_type)
+  AND (a.payment_method IS NULL OR t.payment_method = a.payment_method);
 
 -- name: GetUniqueMembersCount :one
 WITH args AS (
@@ -43,7 +56,7 @@ WITH args AS (
         sqlc.narg('program_name')::text AS program_name,
         sqlc.narg('tier_ids')::text[] AS tier_ids,
         sqlc.narg('is_student')::boolean AS is_student,
-        sqlc.narg('purchase_type')::purchase_type AS purchase_type
+        sqlc.narg('payment_method')::payment_method_type AS payment_method
 )
 SELECT COUNT(DISTINCT t.user_id)
 FROM transactions t
@@ -54,7 +67,7 @@ WHERE t.status = 'completed'
   AND (a.program_name IS NULL OR mp.program_name = a.program_name)
   AND (a.tier_ids IS NULL OR mt.id::text = ANY(a.tier_ids))
   AND (a.is_student IS NULL OR t.student_at_purchase = a.is_student)
-  AND (a.purchase_type IS NULL OR t.purchase_type = a.purchase_type);
+  AND (a.payment_method IS NULL OR t.payment_method = a.payment_method);
 
 -- name: GetMembershipsBoughtOverTime :many
 WITH args AS (
@@ -64,7 +77,9 @@ WITH args AS (
         sqlc.arg('to_date')::timestamptz AS to_date,
         sqlc.narg('program_name')::text AS program_name,
         sqlc.narg('tier_ids')::text[] AS tier_ids,
-        sqlc.narg('is_student')::boolean AS is_student
+        sqlc.narg('is_student')::boolean AS is_student,
+        sqlc.narg('purchase_type')::purchase_type AS purchase_type,
+        sqlc.narg('payment_method')::payment_method_type AS payment_method
 )
 SELECT
     date_trunc((SELECT granularity FROM args), t.created_at, 'UTC')::timestamptz AS bucket,
@@ -79,6 +94,8 @@ WHERE t.status = 'completed'
   AND (a.program_name IS NULL OR mp.program_name = a.program_name)
   AND (a.tier_ids IS NULL OR mt.id::text = ANY(a.tier_ids))
   AND (a.is_student IS NULL OR t.student_at_purchase = a.is_student)
+  AND (a.purchase_type IS NULL OR t.purchase_type = a.purchase_type)
+  AND (a.payment_method IS NULL OR t.payment_method = a.payment_method)
 GROUP BY bucket
 ORDER BY bucket;
 
@@ -91,7 +108,8 @@ WITH args AS (
         sqlc.narg('program_name')::text AS program_name,
         sqlc.narg('tier_ids')::text[] AS tier_ids,
         sqlc.narg('is_student')::boolean AS is_student,
-        sqlc.narg('purchase_type')::purchase_type AS purchase_type
+        sqlc.narg('purchase_type')::purchase_type AS purchase_type,
+        sqlc.narg('payment_method')::payment_method_type AS payment_method
 )
 SELECT
     date_trunc((SELECT granularity FROM args), t.created_at, 'UTC')::timestamptz AS bucket,
@@ -107,5 +125,6 @@ WHERE t.status = 'completed'
   AND (a.tier_ids IS NULL OR mt.id::text = ANY(a.tier_ids))
   AND (a.is_student IS NULL OR t.student_at_purchase = a.is_student)
   AND (a.purchase_type IS NULL OR t.purchase_type = a.purchase_type)
+  AND (a.payment_method IS NULL OR t.payment_method = a.payment_method)
 GROUP BY bucket
 ORDER BY bucket;

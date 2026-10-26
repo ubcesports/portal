@@ -1,3 +1,5 @@
+import type { PaymentMethod } from "@/lib/types/membership.types";
+
 export type Granularity = "week" | "month" | "year";
 
 export type TimeRangeMode = "last_n" | "since_inception";
@@ -9,6 +11,7 @@ export type AnalyticsFilters = {
   tierIds?: string[];
   isStudent?: boolean;
   purchaseType?: PurchaseType; // undefined = both
+  paymentMethod?: PaymentMethod; // undefined = all
   granularity: Granularity;
   mode: TimeRangeMode;
   periods: number; // used when mode === "last_n"
@@ -50,6 +53,12 @@ export const TIME_RANGE_MODE_OPTIONS: { value: TimeRangeMode; label: string }[] 
 export const PURCHASE_TYPE_OPTIONS: { value: PurchaseType; label: string }[] = [
   { value: "new", label: "New purchases" },
   { value: "upgrade", label: "Upgrades" },
+];
+
+export const PAYMENT_METHOD_OPTIONS: { value: PaymentMethod; label: string }[] = [
+  { value: "stripe", label: "Stripe" },
+  { value: "cash", label: "Cash" },
+  { value: "etransfer", label: "E-transfer" },
 ];
 
 export const MIN_PERIODS = 1;

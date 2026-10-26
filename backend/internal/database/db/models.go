@@ -190,6 +190,49 @@ func (ns NullGroupType) Value() (driver.Value, error) {
 	return string(ns.GroupType), nil
 }
 
+type LoungeStationType string
+
+const (
+	LoungeStationTypePc      LoungeStationType = "pc"
+	LoungeStationTypeCab     LoungeStationType = "cab"
+	LoungeStationTypeCheckIn LoungeStationType = "check_in"
+)
+
+func (e *LoungeStationType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = LoungeStationType(s)
+	case string:
+		*e = LoungeStationType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for LoungeStationType: %T", src)
+	}
+	return nil
+}
+
+type NullLoungeStationType struct {
+	LoungeStationType LoungeStationType
+	Valid             bool // Valid is true if LoungeStationType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullLoungeStationType) Scan(value interface{}) error {
+	if value == nil {
+		ns.LoungeStationType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.LoungeStationType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullLoungeStationType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.LoungeStationType), nil
+}
+
 type MembershipExpirationType string
 
 const (
@@ -445,6 +488,32 @@ type ExecSocialLink struct {
 	UpdatedAt pgtype.Timestamptz
 }
 
+type LoungeSession struct {
+	ID           pgtype.UUID
+	UserID       pgtype.UUID
+	MembershipID pgtype.UUID
+	StationID    pgtype.UUID
+	CheckInTime  pgtype.Timestamptz
+	CheckOutTime pgtype.Timestamptz
+	CheckedInBy  pgtype.UUID
+	CheckedOutBy pgtype.UUID
+	Game         pgtype.Text
+}
+
+type LoungeStation struct {
+	ID          pgtype.UUID
+	Code        string
+	Label       string
+	StationType LoungeStationType
+	Closed      bool
+	GridRow     int16
+	GridColumn  int16
+	Width       int16
+	Height      int16
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
 type Membership struct {
 	ID          pgtype.UUID
 	UserID      pgtype.UUID
@@ -454,6 +523,20 @@ type Membership struct {
 	CancelledAt pgtype.Timestamptz
 	CreatedAt   pgtype.Timestamptz
 	UpdatedAt   pgtype.Timestamptz
+}
+
+type MembershipInvitation struct {
+	ID               pgtype.UUID
+	Email            string
+	TierID           pgtype.UUID
+	AmountPaidCents  int64
+	PaymentMethod    PaymentMethodType
+	Done             bool
+	CreatedByUserID  pgtype.UUID
+	InvitationSentAt pgtype.Timestamptz
+	PurchasedAt      pgtype.Timestamptz
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
 }
 
 type MembershipProgram struct {
@@ -485,20 +568,6 @@ type MembershipTierPrice struct {
 	UpdatedAt         pgtype.Timestamptz
 	IsStudentRequired pgtype.Bool
 	PriceInCents      pgtype.Int8
-}
-
-type MembershipInvitation struct {
-	ID               pgtype.UUID
-	Email            string
-	TierID           pgtype.UUID
-	AmountPaidCents  int64
-	PaymentMethod    PaymentMethodType
-	Done             bool
-	CreatedByUserID  pgtype.UUID
-	InvitationSentAt pgtype.Timestamptz
-	PurchasedAt      pgtype.Timestamptz
-	CreatedAt        pgtype.Timestamptz
-	UpdatedAt        pgtype.Timestamptz
 }
 
 type Session struct {

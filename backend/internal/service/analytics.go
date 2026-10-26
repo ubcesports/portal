@@ -24,6 +24,7 @@ type AnalyticsFilters struct {
 	TierIDs        []string
 	IsStudent      *bool
 	PurchaseType   *string // "new" | "upgrade", nil = both
+	PaymentMethod  *string // "stripe" | "cash" | "etransfer", nil = all
 	Granularity    string  // "week" | "month" | "year"
 	Periods        int     // used unless SinceInception is true
 	SinceInception bool
@@ -46,37 +47,41 @@ func NewAnalyticsService(analyticsRepo *repository.AnalyticsRepository) *Analyti
 }
 
 // GetSummary returns current active memberships and all-time revenue and purchasers.
-// Time-range filters are ignored; purchase type applies only to revenue and
-// unique purchasers. Repository errors are returned to the caller.
+// Time-range filters are ignored; purchase type applies only to revenue, and
+// payment method applies to every metric. Repository errors are returned to
+// the caller.
 func (s *AnalyticsService) GetSummary(ctx context.Context, filters AnalyticsFilters) (*dto.AnalyticsSummaryDTO, error) {
 	programName := optionalText(filters.ProgramName)
 	isStudent := optionalBool(filters.IsStudent)
 	purchaseType := optionalPurchaseType(filters.PurchaseType)
+	paymentMethod := optionalPaymentMethod(filters.PaymentMethod)
 
 	activeMemberships, err := s.analyticsRepo.GetActiveMembershipsCount(ctx, db.GetActiveMembershipsCountParams{
-		ProgramName: programName,
-		TierIds:     filters.TierIDs,
-		IsStudent:   isStudent,
+		ProgramName:   programName,
+		TierIds:       filters.TierIDs,
+		IsStudent:     isStudent,
+		PaymentMethod: paymentMethod,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	revenueCents, err := s.analyticsRepo.GetAllTimeRevenueCents(ctx, db.GetAllTimeRevenueCentsParams{
-		ProgramName:  programName,
-		TierIds:      filters.TierIDs,
-		IsStudent:    isStudent,
-		PurchaseType: purchaseType,
+		ProgramName:   programName,
+		TierIds:       filters.TierIDs,
+		IsStudent:     isStudent,
+		PurchaseType:  purchaseType,
+		PaymentMethod: paymentMethod,
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	uniqueMembers, err := s.analyticsRepo.GetUniqueMembersCount(ctx, db.GetUniqueMembersCountParams{
-		ProgramName:  programName,
-		TierIds:      filters.TierIDs,
-		IsStudent:    isStudent,
-		PurchaseType: purchaseType,
+		ProgramName:   programName,
+		TierIds:       filters.TierIDs,
+		IsStudent:     isStudent,
+		PaymentMethod: paymentMethod,
 	})
 	if err != nil {
 		return nil, err
@@ -90,8 +95,8 @@ func (s *AnalyticsService) GetSummary(ctx context.Context, filters AnalyticsFilt
 }
 
 // GetMembershipsBoughtOverTime returns completed purchase counts by period,
-// filling missing buckets with zero. Purchase type is ignored. Since-inception
-// ranges start at the first matching purchase and are empty if none exist.
+// filling missing buckets with zero. Since-inception ranges start at the first
+// matching purchase and are empty if none exist.
 func (s *AnalyticsService) GetMembershipsBoughtOverTime(
 	ctx context.Context,
 	filters AnalyticsFilters,
@@ -107,12 +112,14 @@ func (s *AnalyticsService) getMembershipsBoughtOverTime(
 	fromDate := resolveFromDate(filters, now)
 
 	rows, err := s.analyticsRepo.GetMembershipsBoughtOverTime(ctx, db.GetMembershipsBoughtOverTimeParams{
-		Granularity: filters.Granularity,
-		FromDate:    toNullableTimestamptz(fromDate),
-		ToDate:      toTimestamptz(now),
-		ProgramName: optionalText(filters.ProgramName),
-		TierIds:     filters.TierIDs,
-		IsStudent:   optionalBool(filters.IsStudent),
+		Granularity:   filters.Granularity,
+		FromDate:      toNullableTimestamptz(fromDate),
+		ToDate:        toTimestamptz(now),
+		ProgramName:   optionalText(filters.ProgramName),
+		TierIds:       filters.TierIDs,
+		IsStudent:     optionalBool(filters.IsStudent),
+		PurchaseType:  optionalPurchaseType(filters.PurchaseType),
+		PaymentMethod: optionalPaymentMethod(filters.PaymentMethod),
 	})
 	if err != nil {
 		return nil, err
@@ -157,13 +164,14 @@ func (s *AnalyticsService) getRevenueOverTime(
 	fromDate := resolveFromDate(filters, now)
 
 	rows, err := s.analyticsRepo.GetRevenueOverTime(ctx, db.GetRevenueOverTimeParams{
-		Granularity:  filters.Granularity,
-		FromDate:     toNullableTimestamptz(fromDate),
-		ToDate:       toTimestamptz(now),
-		ProgramName:  optionalText(filters.ProgramName),
-		TierIds:      filters.TierIDs,
-		IsStudent:    optionalBool(filters.IsStudent),
-		PurchaseType: optionalPurchaseType(filters.PurchaseType),
+		Granularity:   filters.Granularity,
+		FromDate:      toNullableTimestamptz(fromDate),
+		ToDate:        toTimestamptz(now),
+		ProgramName:   optionalText(filters.ProgramName),
+		TierIds:       filters.TierIDs,
+		IsStudent:     optionalBool(filters.IsStudent),
+		PurchaseType:  optionalPurchaseType(filters.PurchaseType),
+		PaymentMethod: optionalPaymentMethod(filters.PaymentMethod),
 	})
 	if err != nil {
 		return nil, err
@@ -323,6 +331,15 @@ func optionalPurchaseType(value *string) db.NullPurchaseType {
 		return db.NullPurchaseType{}
 	}
 	return db.NullPurchaseType{PurchaseType: db.PurchaseType(*value), Valid: true}
+}
+
+// optionalPaymentMethod wraps a payment method for database queries; nil becomes NULL.
+// The caller is responsible for validating non-nil values.
+func optionalPaymentMethod(value *string) db.NullPaymentMethodType {
+	if value == nil {
+		return db.NullPaymentMethodType{}
+	}
+	return db.NullPaymentMethodType{PaymentMethodType: db.PaymentMethodType(*value), Valid: true}
 }
 
 // toNullableTimestamptz converts a time pointer to a database timestamp; nil becomes NULL.

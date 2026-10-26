@@ -7,12 +7,14 @@ import { SelectField } from "@/components/toolbar/select-option";
 import { ResetButton } from "@/components/toolbar/reset-button";
 import { CheckboxFilter } from "@/components/toolbar/checkbox-filter";
 import type { AdminMembershipTierOption } from "@/lib/types/admin.types";
+import type { PaymentMethod } from "@/lib/types/membership.types";
 import { IS_STUDENT_OPTIONS, type IsStudentFilter } from "@/lib/types/admin.types";
 import {
   DEFAULT_ANALYTICS_FILTERS,
   GRANULARITY_OPTIONS,
   MAX_PERIODS,
   MIN_PERIODS,
+  PAYMENT_METHOD_OPTIONS,
   PURCHASE_TYPE_OPTIONS,
   TIME_RANGE_MODE_OPTIONS,
   type AnalyticsFilters,
@@ -48,6 +50,7 @@ function hasActiveFilters(filters: AnalyticsFilters) {
     (filters.tierIds?.length ?? 0) > 0 ||
     filters.isStudent !== undefined ||
     filters.purchaseType !== undefined ||
+    filters.paymentMethod !== undefined ||
     filters.granularity !== DEFAULT_ANALYTICS_FILTERS.granularity ||
     filters.mode !== DEFAULT_ANALYTICS_FILTERS.mode ||
     filters.periods !== DEFAULT_ANALYTICS_FILTERS.periods
@@ -99,12 +102,20 @@ export function AnalyticsFiltersToolbar({
           ariaLabel="Filter by student status"
         />
         <SelectField
-          label="Purchase type (revenue only)"
+          label="Purchase type (charts & revenue)"
           value={filters.purchaseType ?? ""}
           onChange={(value) => onChange({ purchaseType: (value || undefined) as PurchaseType })}
           options={PURCHASE_TYPE_OPTIONS}
           allLabel="Both"
           ariaLabel="Filter by purchase type"
+        />
+        <SelectField
+          label="Payment method"
+          value={filters.paymentMethod ?? ""}
+          onChange={(value) => onChange({ paymentMethod: (value || undefined) as PaymentMethod })}
+          options={PAYMENT_METHOD_OPTIONS}
+          allLabel="All methods"
+          ariaLabel="Filter by payment method"
         />
       </ToolbarRow>
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/ubcesports/memberships/internal/database/db"
 	"github.com/ubcesports/memberships/internal/dto"
 	"github.com/ubcesports/memberships/internal/service"
 	"github.com/ubcesports/memberships/internal/util"
@@ -34,7 +35,8 @@ Args (query params):
 	program_name: optional membership program name
 	tier_id: optional repeated membership tier UUIDs
 	is_student: optional boolean student status
-	purchase_type: optional purchase type (new or upgrade)
+	purchase_type: optional purchase type (new or upgrade); applies to revenue only
+	payment_method: optional payment method (stripe, cash, or etransfer)
 
 Returns:
 
@@ -73,7 +75,7 @@ API URL: GET /admin/analytics/memberships-over-time
 
 Args (query params):
 
-	program_name, tier_id, is_student: same as GetSummary
+	program_name, tier_id, is_student, purchase_type, payment_method: same as GetSummary
 	granularity: week, month, or year (default week)
 	periods: number of trailing periods to include (default 12), ignored when since_inception is set
 	since_inception: "true" to return the full history instead of the last N periods
@@ -115,7 +117,7 @@ API URL: GET /admin/analytics/revenue-over-time
 
 Args (query params):
 
-	program_name, tier_id, is_student, purchase_type: same as GetSummary
+	program_name, tier_id, is_student, purchase_type, payment_method: same as GetSummary
 	granularity, periods, since_inception: same as GetMembershipsBoughtOverTime
 
 Returns:
@@ -256,6 +258,15 @@ func parseAnalyticsFilters(r *http.Request, requireGranularity bool) (service.An
 			filters.PurchaseType = &value
 		default:
 			return service.AnalyticsFilters{}, errors.New("purchase_type must be new or upgrade")
+		}
+	}
+
+	if value := query.Get("payment_method"); value != "" {
+		switch db.PaymentMethodType(value) {
+		case db.PaymentMethodTypeStripe, db.PaymentMethodTypeCash, db.PaymentMethodTypeEtransfer:
+			filters.PaymentMethod = &value
+		default:
+			return service.AnalyticsFilters{}, errors.New("payment_method must be stripe, cash, or etransfer")
 		}
 	}
 
