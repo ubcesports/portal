@@ -870,6 +870,7 @@ func buildUpdateUserRequest(request dto.AdminUpdateUserRequest) service.UpdateUs
 		GroupsAdd:          make([]db.GroupType, 0, len(request.GroupsAdd)),
 		GroupsRemove:       make([]db.GroupType, 0, len(request.GroupsRemove)),
 		CancelMembershipId: request.CancelMembershipId,
+		AdminNote:          request.AdminNote,
 	}
 
 	if request.Role != nil {

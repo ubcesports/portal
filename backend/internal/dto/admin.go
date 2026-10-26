@@ -42,6 +42,7 @@ type AdminUpdateUserRequest struct {
 	GroupsRemove       []GroupType `json:"groups_remove"`
 	Role               *RoleType   `json:"role"`
 	CancelMembershipId *string     `json:"cancel_membership_id"`
+	AdminNote          *string     `json:"admin_note"`
 }
 
 type AdminUpdateExecProfileRequest struct {

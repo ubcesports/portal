@@ -696,6 +696,22 @@ func (q *Queries) UpdateExecProfile(ctx context.Context, arg UpdateExecProfilePa
 	return err
 }
 
+const updateUserAdminNote = `-- name: UpdateUserAdminNote :exec
+UPDATE users
+SET admin_note = $1, updated_at = NOW()
+WHERE id = $2
+`
+
+type UpdateUserAdminNoteParams struct {
+	AdminNote pgtype.Text
+	ID        pgtype.UUID
+}
+
+func (q *Queries) UpdateUserAdminNote(ctx context.Context, arg UpdateUserAdminNoteParams) error {
+	_, err := q.db.Exec(ctx, updateUserAdminNote, arg.AdminNote, arg.ID)
+	return err
+}
+
 const updateUserFullName = `-- name: UpdateUserFullName :exec
 UPDATE users
 SET full_name = $1, updated_at = NOW()

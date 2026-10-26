@@ -89,6 +89,7 @@ export type UpdateAdminExecProfileRequest = {
 */
 export type UpdateUserRequest = {
   full_name?: string;
+  admin_note?: string;
   student_id?: string;
   is_student?: boolean;
   groups_add?: GroupType[];

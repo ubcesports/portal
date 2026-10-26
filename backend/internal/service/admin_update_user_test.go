@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -36,10 +37,12 @@ type execProfileUpdate struct {
 // fakeAdminStore is an in-memory repository.AdminStore for exercising the admin
 // service without a database.
 type fakeAdminStore struct {
-	fullNameUpdates   []string
-	updateFullNameErr error
-	user              db.GetAdminUserByIDRow
-	getUserErr        error
+	fullNameUpdates    []string
+	updateFullNameErr  error
+	adminNoteUpdates   []string
+	updateAdminNoteErr error
+	user               db.GetAdminUserByIDRow
+	getUserErr         error
 
 	takenStudentIDs    map[string]bool
 	allStudentIDsTaken bool
@@ -71,6 +74,62 @@ func (f *fakeAdminStore) UpdateUserFullName(_ context.Context, _ string, fullNam
 	f.fullNameUpdates = append(f.fullNameUpdates, fullName)
 	f.user.FullName = fullName
 	return nil
+}
+
+func (f *fakeAdminStore) UpdateUserAdminNote(_ context.Context, _ string, adminNote string) error {
+	if f.updateAdminNoteErr != nil {
+		return f.updateAdminNoteErr
+	}
+	f.adminNoteUpdates = append(f.adminNoteUpdates, adminNote)
+	f.user.AdminNote = pgtype.Text{String: adminNote, Valid: true}
+	return nil
+}
+
+func TestUpdateUserAdminNote(t *testing.T) {
+	store := newFakeAdminStore(t, false, "N1234567", db.RoleTypeMember, "member")
+	svc := &AdminService{adminRepository: store}
+	note := "  Follow up about membership  "
+	profile, err := svc.UpdateUser(context.Background(), testActorID, testTargetID, testRequestID, UpdateUserRequest{AdminNote: &note})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if profile.AdminNote == nil || *profile.AdminNote != note {
+		t.Fatalf("expected requested note in updated profile, got %#v", profile.AdminNote)
+	}
+	if len(store.adminNoteUpdates) != 1 || store.adminNoteUpdates[0] != note {
+		t.Fatalf("expected note to be persisted, got %v", store.adminNoteUpdates)
+	}
+	assertAuditActions(t, store, db.AdminAuditOutcomeTypeSuccess, actionAdminNoteUpdated)
+}
+
+func TestUpdateUserAdminNoteEmptyAndLimit(t *testing.T) {
+	t.Run("empty is persisted as empty string", func(t *testing.T) {
+		store := newFakeAdminStore(t, false, "N1234567", db.RoleTypeMember, "member")
+		if err := updateUser(t, store, UpdateUserRequest{AdminNote: ptr(" \t\n ")}); err != nil {
+			t.Fatal(err)
+		}
+		if len(store.adminNoteUpdates) != 1 || store.adminNoteUpdates[0] != "" {
+			t.Fatalf("expected empty string to be persisted, got %q", store.adminNoteUpdates)
+		}
+	})
+
+	t.Run("rejects more than 200 characters", func(t *testing.T) {
+		store := newFakeAdminStore(t, false, "N1234567", db.RoleTypeMember, "member")
+		if err := updateUser(t, store, UpdateUserRequest{AdminNote: ptr(strings.Repeat("a", 201))}); !errors.Is(err, ErrValidation) {
+			t.Fatalf("expected length validation error, got %v", err)
+		}
+		if len(store.adminNoteUpdates) != 0 {
+			t.Fatal("invalid note should not be persisted")
+		}
+	})
+
+	t.Run("accepts exactly 200 characters", func(t *testing.T) {
+		store := newFakeAdminStore(t, false, "N1234567", db.RoleTypeMember, "member")
+		note := strings.Repeat("a", 200)
+		if err := updateUser(t, store, UpdateUserRequest{AdminNote: &note}); err != nil {
+			t.Fatalf("expected 200-character note to be accepted, got %v", err)
+		}
+	})
 }
 
 func TestUpdateUserFullName(t *testing.T) {

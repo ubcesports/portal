@@ -8,7 +8,7 @@ import { ActionButton } from "@/components/action-button";
 import { DetailRow } from "@/components/detail-row";
 import { StatusBadge } from "@/components/status-badge";
 import { SurfacePanel } from "@/components/surface-panel";
-import type { GroupType, RoleType, User } from "@/lib/types/user.types";
+import type { GroupType, RoleType } from "@/lib/types/user.types";
 import type { AdminUserProfile, UpdateUserRequest } from "@/lib/types/admin.types";
 import { GROUP_OPTIONS, ROLE_OPTIONS } from "@/lib/types/admin.types";
 import { formatTime, getInitials } from "@/lib/utils/formatting";
@@ -18,6 +18,7 @@ const FIELD_CLASS_NAME =
   "h-10 border border-brand-border bg-brand-surface px-3 text-sm text-brand-text";
 
 const STUDENT_ID_PATTERN = /^\d{8}$/;
+const MAX_ADMIN_NOTE_LENGTH = 200;
 
 type UserProfilePanelProps = {
   user: AdminUserProfile;
@@ -27,15 +28,17 @@ type UserProfilePanelProps = {
 
 export type Draft = {
   fullName: string;
+  adminNote: string;
   isStudent: boolean;
   studentId: string;
   role: RoleType;
   groups: GroupType[];
 };
 
-function toDraft(user: User): Draft {
+function toDraft(user: AdminUserProfile): Draft {
   return {
     fullName: user.full_name,
+    adminNote: user.admin_note ?? "",
     isStudent: user.is_student,
     studentId: user.student_id ?? "",
     role: user.role,
@@ -60,11 +63,16 @@ function OptionalTime({ value }: { value: string | null }) {
   left untouched by the API, so an unchanged field must not be sent — notably
   `student_id`, which the API rejects for non-students.
 */
-export function buildUpdateBody(user: User, draft: Draft): UpdateUserRequest {
+export function buildUpdateBody(user: AdminUserProfile, draft: Draft): UpdateUserRequest {
   const body: UpdateUserRequest = {};
   const trimmedFullName = draft.fullName.trim();
   if (trimmedFullName !== user.full_name) {
     body.full_name = trimmedFullName;
+  }
+  const trimmedAdminNote = draft.adminNote.trim();
+  const adminNote = trimmedAdminNote ? draft.adminNote : "";
+  if (adminNote !== (user.admin_note ?? "")) {
+    body.admin_note = adminNote;
   }
   const trimmedStudentId = draft.studentId.trim();
 
@@ -106,6 +114,9 @@ export function validateDraft(draft: Draft): string | null {
   }
   if (draft.isStudent && !STUDENT_ID_PATTERN.test(draft.studentId.trim())) {
     return "Student ID must be an 8 digit number.";
+  }
+  if (Array.from(draft.adminNote).length > MAX_ADMIN_NOTE_LENGTH) {
+    return `Admin note must be ${MAX_ADMIN_NOTE_LENGTH} characters or fewer.`;
   }
 
   return null;
@@ -228,7 +239,27 @@ export function UserProfilePanel({ user, onSave, isSaving }: UserProfilePanelPro
         </DetailRow>
 
         <DetailRow label="Admin note">
-          {user.admin_note ? (
+          {isEditing ? (
+            <div className="w-full max-w-2xl">
+              <textarea
+                aria-label="Admin note"
+                aria-describedby="admin-note-count"
+                value={draft.adminNote}
+                disabled={isSaving}
+                rows={3}
+                onChange={(event) => {
+                  const adminNote = event.target.value;
+                  if (Array.from(adminNote).length <= MAX_ADMIN_NOTE_LENGTH) {
+                    setDraft((current) => ({ ...current, adminNote }));
+                  }
+                }}
+                className="min-h-24 w-full resize-y border border-brand-border bg-brand-surface p-3 text-sm text-brand-text"
+              />
+              <p id="admin-note-count" className="mt-1 text-right text-xs text-brand-text-muted">
+                {Array.from(draft.adminNote).length} / {MAX_ADMIN_NOTE_LENGTH}
+              </p>
+            </div>
+          ) : user.admin_note ? (
             <span className="whitespace-pre-wrap break-words">{user.admin_note}</span>
           ) : (
             <EmptyValue />
