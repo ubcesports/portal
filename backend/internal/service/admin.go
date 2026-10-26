@@ -223,7 +223,7 @@ func (s *AdminService) GetAdminMembershipTierOptions(
 }
 
 // GetUserByID returns a single user's profile for the admin detail view.
-func (s *AdminService) GetUserByID(ctx context.Context, userId string) (*dto.ProfileDTO, error) {
+func (s *AdminService) GetUserByID(ctx context.Context, userId string) (*dto.AdminUserProfileDTO, error) {
 	row, err := s.adminRepository.GetUserByID(ctx, userId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -380,8 +380,8 @@ func (s *AdminService) UpdateUser(
 	targetUserId string,
 	requestId string,
 	req UpdateUserRequest,
-) (*dto.ProfileDTO, error) {
-	var profile *dto.ProfileDTO
+) (*dto.AdminUserProfileDTO, error) {
+	var profile *dto.AdminUserProfileDTO
 	var pendingEmails []pendingUserEmail
 	var targetEmail string
 
@@ -1096,25 +1096,28 @@ func displayValue(value string) string {
 	return value
 }
 
-func buildAdminUserProfile(row db.GetAdminUserByIDRow) dto.ProfileDTO {
+func buildAdminUserProfile(row db.GetAdminUserByIDRow) dto.AdminUserProfileDTO {
 	groups := make([]dto.GroupType, 0, len(row.Groups))
 	for _, group := range row.Groups {
 		groups = append(groups, dto.GroupType(group))
 	}
 
-	return dto.ProfileDTO{
-		ID:                    row.ID.String(),
-		Email:                 row.Email,
-		StudentID:             util.TextPointer(row.StudentID),
-		Role:                  dto.RoleType(row.Role),
-		CreatedAt:             row.CreatedAt.Time,
-		UpdatedAt:             row.UpdatedAt.Time,
-		FullName:              row.FullName,
-		EmailVerifiedAt:       util.TimestampPointer(row.EmailVerifiedAt),
-		IsStudent:             row.IsStudent,
-		OnboardingCompletedAt: util.TimestampPointer(row.OnboardingCompletedAt),
-		AvatarURL:             util.TextPointer(row.AvatarUrl),
-		Groups:                groups,
+	return dto.AdminUserProfileDTO{
+		ProfileDTO: dto.ProfileDTO{
+			ID:                    row.ID.String(),
+			Email:                 row.Email,
+			StudentID:             util.TextPointer(row.StudentID),
+			Role:                  dto.RoleType(row.Role),
+			CreatedAt:             row.CreatedAt.Time,
+			UpdatedAt:             row.UpdatedAt.Time,
+			FullName:              row.FullName,
+			EmailVerifiedAt:       util.TimestampPointer(row.EmailVerifiedAt),
+			IsStudent:             row.IsStudent,
+			OnboardingCompletedAt: util.TimestampPointer(row.OnboardingCompletedAt),
+			AvatarURL:             util.TextPointer(row.AvatarUrl),
+			Groups:                groups,
+		},
+		AdminNote: util.TextPointer(row.AdminNote),
 	}
 }
 

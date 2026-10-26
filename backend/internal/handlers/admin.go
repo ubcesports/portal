@@ -284,7 +284,7 @@ func (h *AdminHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WriteJson(w, http.StatusOK, map[string]dto.ProfileDTO{"user": *profile})
+	util.WriteJson(w, http.StatusOK, map[string]dto.AdminUserProfileDTO{"user": *profile})
 }
 
 /*
@@ -424,7 +424,7 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WriteJson(w, http.StatusOK, map[string]dto.ProfileDTO{"user": *profile})
+	util.WriteJson(w, http.StatusOK, map[string]dto.AdminUserProfileDTO{"user": *profile})
 }
 
 /*

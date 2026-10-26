@@ -7,6 +7,11 @@ type AdminUserDTO struct {
 	ActiveMemberships []AdminActiveMembershipSummary `json:"active_memberships"`
 }
 
+type AdminUserProfileDTO struct {
+	ProfileDTO
+	AdminNote *string `json:"admin_note"`
+}
+
 type AdminActiveMembershipSummary struct {
 	TierTitle string `json:"tier_title"`
 }

@@ -168,6 +168,7 @@ SELECT
     u.is_student,
     u.onboarding_completed_at,
     u.avatar_url,
+    u.admin_note,
     COALESCE(g.groups, '{}'::text[])::text[] AS groups
 FROM users u
 LEFT JOIN LATERAL (

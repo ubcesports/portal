@@ -9,7 +9,7 @@ import { DetailRow } from "@/components/detail-row";
 import { StatusBadge } from "@/components/status-badge";
 import { SurfacePanel } from "@/components/surface-panel";
 import type { GroupType, RoleType, User } from "@/lib/types/user.types";
-import type { UpdateUserRequest } from "@/lib/types/admin.types";
+import type { AdminUserProfile, UpdateUserRequest } from "@/lib/types/admin.types";
 import { GROUP_OPTIONS, ROLE_OPTIONS } from "@/lib/types/admin.types";
 import { formatTime, getInitials } from "@/lib/utils/formatting";
 import { getGroupBadgeClass, titleCase } from "@/lib/utils/groups";
@@ -20,7 +20,7 @@ const FIELD_CLASS_NAME =
 const STUDENT_ID_PATTERN = /^\d{8}$/;
 
 type UserProfilePanelProps = {
-  user: User;
+  user: AdminUserProfile;
   onSave: (body: UpdateUserRequest) => Promise<unknown>;
   isSaving: boolean;
 };
@@ -224,6 +224,14 @@ export function UserProfilePanel({ user, onSave, isSaving }: UserProfilePanelPro
             />
           ) : (
             user.full_name
+          )}
+        </DetailRow>
+
+        <DetailRow label="Admin note">
+          {user.admin_note ? (
+            <span className="whitespace-pre-wrap break-words">{user.admin_note}</span>
+          ) : (
+            <EmptyValue />
           )}
         </DetailRow>
 

@@ -26,6 +26,10 @@ export type AdminUser = User & {
   active_memberships: AdminActiveMembership[];
 };
 
+export type AdminUserProfile = User & {
+  admin_note: string | null;
+};
+
 export type AdminMembershipTierOption = {
   id: string;
   title: string;
@@ -61,7 +65,7 @@ export type UsersResponse = {
 };
 
 export type UserResponse = {
-  user: User;
+  user: AdminUserProfile;
 };
 
 export type AdminExecProfile = {
