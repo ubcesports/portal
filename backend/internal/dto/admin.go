@@ -7,6 +7,11 @@ type AdminUserDTO struct {
 	ActiveMemberships []AdminActiveMembershipSummary `json:"active_memberships"`
 }
 
+type AdminUserProfileDTO struct {
+	ProfileDTO
+	AdminNote *string `json:"admin_note"`
+}
+
 type AdminActiveMembershipSummary struct {
 	TierTitle string `json:"tier_title"`
 }
@@ -37,6 +42,7 @@ type AdminUpdateUserRequest struct {
 	GroupsRemove       []GroupType `json:"groups_remove"`
 	Role               *RoleType   `json:"role"`
 	CancelMembershipId *string     `json:"cancel_membership_id"`
+	AdminNote          *string     `json:"admin_note"`
 }
 
 type AdminUpdateExecProfileRequest struct {

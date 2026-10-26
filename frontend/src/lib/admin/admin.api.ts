@@ -1,6 +1,7 @@
 import apiClient from "../client";
 import type {
   AdminUserFilters,
+  AdminUserProfile,
   AdminMembershipTierOption,
   AdminPagination,
   AppliedSearch,
@@ -15,7 +16,6 @@ import type {
   CreateMembershipInvitationRequest,
   MembershipInvitation,
 } from "@/lib/types/admin.types";
-import type { User } from "@/lib/types/user.types";
 import type { EligibleMembershipTier, Membership } from "../types/membership.types";
 
 export function buildAdminUserParams(
@@ -77,7 +77,7 @@ export async function fetchAdminMembershipTierOptions(
   return response.data ?? [];
 }
 
-export async function fetchUser(userId: string, signal?: AbortSignal): Promise<User> {
+export async function fetchUser(userId: string, signal?: AbortSignal): Promise<AdminUserProfile> {
   const response = await apiClient.get<UserResponse>(`/admin/users/${userId}`, { signal });
 
   return response.data.user;
@@ -138,7 +138,10 @@ export async function deleteMembershipInvitation(id: string): Promise<void> {
   await apiClient.delete(`/admin/membership-invitations/${id}`);
 }
 
-export async function updateUser(userId: string, body: UpdateUserRequest): Promise<User> {
+export async function updateUser(
+  userId: string,
+  body: UpdateUserRequest,
+): Promise<AdminUserProfile> {
   const response = await apiClient.patch<UserResponse>(`/admin/users/${userId}`, body);
 
   return response.data.user;

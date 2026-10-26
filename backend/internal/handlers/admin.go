@@ -284,7 +284,7 @@ func (h *AdminHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WriteJson(w, http.StatusOK, map[string]dto.ProfileDTO{"user": *profile})
+	util.WriteJson(w, http.StatusOK, map[string]dto.AdminUserProfileDTO{"user": *profile})
 }
 
 /*
@@ -424,7 +424,7 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WriteJson(w, http.StatusOK, map[string]dto.ProfileDTO{"user": *profile})
+	util.WriteJson(w, http.StatusOK, map[string]dto.AdminUserProfileDTO{"user": *profile})
 }
 
 /*
@@ -870,6 +870,7 @@ func buildUpdateUserRequest(request dto.AdminUpdateUserRequest) service.UpdateUs
 		GroupsAdd:          make([]db.GroupType, 0, len(request.GroupsAdd)),
 		GroupsRemove:       make([]db.GroupType, 0, len(request.GroupsRemove)),
 		CancelMembershipId: request.CancelMembershipId,
+		AdminNote:          request.AdminNote,
 	}
 
 	if request.Role != nil {

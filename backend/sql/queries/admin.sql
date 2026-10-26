@@ -168,6 +168,7 @@ SELECT
     u.is_student,
     u.onboarding_completed_at,
     u.avatar_url,
+    u.admin_note,
     COALESCE(g.groups, '{}'::text[])::text[] AS groups
 FROM users u
 LEFT JOIN LATERAL (
@@ -183,6 +184,11 @@ WHERE u.id = $1;
 -- name: UpdateUserFullName :exec
 UPDATE users
 SET full_name = sqlc.arg(full_name), updated_at = NOW()
+WHERE id = sqlc.arg(id);
+
+-- name: UpdateUserAdminNote :exec
+UPDATE users
+SET admin_note = sqlc.arg(admin_note), updated_at = NOW()
 WHERE id = sqlc.arg(id);
 
 -- name: UpdateUserStudentInfo :exec

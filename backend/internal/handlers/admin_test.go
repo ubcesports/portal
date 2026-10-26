@@ -89,6 +89,7 @@ func TestParseAdminAuditLogFiltersRejectsInvalidPagination(t *testing.T) {
 
 func TestBuildUpdateUserRequestMapsBodyToServiceTypes(t *testing.T) {
 	studentID := "12345678"
+	adminNote := "Follow up about membership"
 	membershipID := "2d746a56-c977-49e0-a04c-20504cdb07c0"
 	isStudent := true
 	role := dto.RoleAdmin
@@ -100,6 +101,7 @@ func TestBuildUpdateUserRequestMapsBodyToServiceTypes(t *testing.T) {
 		GroupsRemove:       []dto.GroupType{dto.GroupMember, dto.GroupExecutive},
 		Role:               &role,
 		CancelMembershipId: &membershipID,
+		AdminNote:          &adminNote,
 	})
 
 	if request.StudentID == nil || *request.StudentID != "12345678" {
@@ -119,6 +121,9 @@ func TestBuildUpdateUserRequestMapsBodyToServiceTypes(t *testing.T) {
 	}
 	if request.CancelMembershipId == nil || *request.CancelMembershipId != membershipID {
 		t.Fatalf("expected membership ID to be carried over, got %#v", request.CancelMembershipId)
+	}
+	if request.AdminNote == nil || *request.AdminNote != adminNote {
+		t.Fatalf("expected admin note to be carried over, got %#v", request.AdminNote)
 	}
 }
 
