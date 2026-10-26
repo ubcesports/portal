@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"log/slog"
+	"net"
 	"net/http"
 	"runtime/debug"
 	"time"
@@ -42,6 +43,7 @@ func logger(next http.Handler) http.Handler {
 			"duration_ms", float64(time.Since(started).Microseconds()) / 1000,
 			"response_size_bytes", ww.BytesWritten(),
 		}
+		attrs = append(attrs, clientIPAttrs(r)...)
 
 		if metadata.UserID != "" {
 			attrs = append(attrs, "user_id", metadata.UserID)
@@ -77,6 +79,7 @@ func recoverer(next http.Handler) http.Handler {
 				"panic", value,
 				"stack", string(debug.Stack()),
 			}
+			attrs = append(attrs, clientIPAttrs(r)...)
 
 			if metadata := auth.RequestMetadataFromContext(r.Context()); metadata != nil && metadata.UserID != "" {
 				attrs = append(attrs, "user_id", metadata.UserID)
@@ -89,4 +92,19 @@ func recoverer(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// remote_ip is the TCP peer address and can't be spoofed. forwarded_for is the raw
+// X-Forwarded-For header, which is only trustworthy when set by our own reverse proxy
+func clientIPAttrs(r *http.Request) []any {
+	remoteIP := r.RemoteAddr
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		remoteIP = host
+	}
+
+	attrs := []any{"remote_ip", remoteIP}
+	if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+		attrs = append(attrs, "forwarded_for", forwardedFor)
+	}
+	return attrs
 }
