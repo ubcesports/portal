@@ -19,6 +19,15 @@ func (r *ExecProfileRepository) GetExecProfiles(ctx context.Context) ([]db.GetEx
 	return r.store.GetExecProfiles(ctx)
 }
 
+func (r *ExecProfileRepository) GetExecProfileByUserID(ctx context.Context, userId string) (db.GetExecProfileWithSocialLinksByUserIDRow, error) {
+	pgUserId, err := util.GetValidatedUUID(userId)
+	if err != nil {
+		return db.GetExecProfileWithSocialLinksByUserIDRow{}, err
+	}
+
+	return r.store.GetExecProfileWithSocialLinksByUserID(ctx, pgUserId)
+}
+
 func (r *ExecProfileRepository) UpdateExecProfileByUserID(ctx context.Context, userId string, title string, displayOrder int32, displayGroup db.GroupType) (db.GetExecProfileByUserIDRow, error) {
 	pgUserId, err := util.GetValidatedUUID(userId)
 	if err != nil {

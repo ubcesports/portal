@@ -19,7 +19,30 @@ FROM exec_profile e
 JOIN users u ON e.user_id = u.id
 LEFT JOIN exec_social_link s ON e.user_id = s.user_id
 GROUP BY e.user_id, e.title, e.display_order, e.display_group, u.full_name, u.avatar_url
-ORDER BY e.display_order ASC;
+ORDER BY e.display_order ASC, u.full_name ASC, e.user_id ASC;
+
+-- name: GetExecProfileWithSocialLinksByUserID :one
+SELECT
+    e.user_id,
+    e.title,
+    e.display_order,
+    e.display_group,
+    u.full_name,
+    u.avatar_url,
+    COALESCE(
+        json_agg(
+            json_build_object(
+                'platform', s.platform,
+                'url', s.url
+            )
+        ) FILTER (WHERE s.platform IS NOT NULL),
+        '[]'::json
+    ) AS social_links
+FROM exec_profile e
+JOIN users u ON e.user_id = u.id
+LEFT JOIN exec_social_link s ON e.user_id = s.user_id
+WHERE e.user_id = $1
+GROUP BY e.user_id, e.title, e.display_order, e.display_group, u.full_name, u.avatar_url;
 
 -- name: UpdateExecSocialLink :exec
 INSERT INTO exec_social_link (user_id, platform, url)

@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5"
 	"github.com/ubcesports/memberships/internal/database/db"
 	"github.com/ubcesports/memberships/internal/dto"
 	"github.com/ubcesports/memberships/internal/service"
@@ -54,6 +56,49 @@ func (h *ExecProfileHandler) GetExecProfiles(w http.ResponseWriter, r *http.Requ
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"execs": groupedProfiles,
 	})
+}
+
+/*
+Returns the executive profile for the currently authenticated user.
+
+API URL: GET /exec-profile
+
+Returns:
+
+	exec_profile: the current user's executive profile (HTTP 200).
+
+Raises:
+
+	401: unauthorized user
+	404: executive profile not found
+	500: unable to load executive profile
+*/
+func (h *ExecProfileHandler) GetCurrentExecProfile(w http.ResponseWriter, r *http.Request) {
+	requestId := middleware.GetReqID(r.Context())
+
+	userId, ok := util.CurrentUserID(r)
+	if !ok {
+		util.WriteApiResponse(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", requestId)
+		return
+	}
+
+	execProfile, err := h.execProfileService.GetExecProfileByUserID(r.Context(), userId)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			util.WriteApiResponse(w, http.StatusNotFound, "NOT_FOUND", "Executive profile not found", requestId)
+			return
+		}
+
+		slog.ErrorContext(r.Context(), "unable to load executive profile",
+			"error", err,
+			"request_id", requestId,
+			"user_id", userId,
+		)
+		util.WriteApiResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load executive profile", requestId)
+		return
+	}
+
+	util.WriteJson(w, http.StatusOK, map[string]*dto.ExecProfileDTO{"exec_profile": execProfile})
 }
 
 /*

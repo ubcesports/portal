@@ -30,6 +30,55 @@ func (q *Queries) DeleteExecSocialLink(ctx context.Context, arg DeleteExecSocial
 	return err
 }
 
+const getExecProfileWithSocialLinksByUserID = `-- name: GetExecProfileWithSocialLinksByUserID :one
+SELECT
+    e.user_id,
+    e.title,
+    e.display_order,
+    e.display_group,
+    u.full_name,
+    u.avatar_url,
+    COALESCE(
+        json_agg(
+            json_build_object(
+                'platform', s.platform,
+                'url', s.url
+            )
+        ) FILTER (WHERE s.platform IS NOT NULL),
+        '[]'::json
+    ) AS social_links
+FROM exec_profile e
+JOIN users u ON e.user_id = u.id
+LEFT JOIN exec_social_link s ON e.user_id = s.user_id
+WHERE e.user_id = $1
+GROUP BY e.user_id, e.title, e.display_order, e.display_group, u.full_name, u.avatar_url
+`
+
+type GetExecProfileWithSocialLinksByUserIDRow struct {
+	UserID       pgtype.UUID
+	Title        string
+	DisplayOrder int32
+	DisplayGroup ExecDisplayGroupType
+	FullName     string
+	AvatarUrl    pgtype.Text
+	SocialLinks  interface{}
+}
+
+func (q *Queries) GetExecProfileWithSocialLinksByUserID(ctx context.Context, userID pgtype.UUID) (GetExecProfileWithSocialLinksByUserIDRow, error) {
+	row := q.db.QueryRow(ctx, getExecProfileWithSocialLinksByUserID, userID)
+	var i GetExecProfileWithSocialLinksByUserIDRow
+	err := row.Scan(
+		&i.UserID,
+		&i.Title,
+		&i.DisplayOrder,
+		&i.DisplayGroup,
+		&i.FullName,
+		&i.AvatarUrl,
+		&i.SocialLinks,
+	)
+	return i, err
+}
+
 const getExecProfiles = `-- name: GetExecProfiles :many
 SELECT 
     e.user_id,
@@ -51,7 +100,7 @@ FROM exec_profile e
 JOIN users u ON e.user_id = u.id
 LEFT JOIN exec_social_link s ON e.user_id = s.user_id
 GROUP BY e.user_id, e.title, e.display_order, e.display_group, u.full_name, u.avatar_url
-ORDER BY e.display_order ASC
+ORDER BY e.display_order ASC, u.full_name ASC, e.user_id ASC
 `
 
 type GetExecProfilesRow struct {

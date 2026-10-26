@@ -39,7 +39,7 @@ func (p *GeneralPolicy) Evaluate(
 	profile *dto.ProfileDTO,
 	current *dto.MembershipDTO,
 	requested *dto.MembershipTierDTO,
-) (dto.PurchaseType, bool, error) {
+) (EvaluationResult, error) {
 	// Exec groups have the highest priority inside general
 	if slices.Contains(profile.Groups, dto.GroupExecutive) ||
 		slices.Contains(profile.Groups, dto.GroupDirector) ||
@@ -48,7 +48,8 @@ func (p *GeneralPolicy) Evaluate(
 			current,
 			requested,
 			"executive",
-		)
+			dto.ReasonExecutiveRestricted,
+		), nil
 	}
 
 	// Comp players is the next priority
@@ -57,7 +58,8 @@ func (p *GeneralPolicy) Evaluate(
 			current,
 			requested,
 			"competitive_team",
-		)
+			dto.ReasonCompetitiveRestricted,
+		), nil
 	}
 
 	// Regular members follow day/basic/lounge transitions
@@ -68,19 +70,28 @@ func (p *GeneralPolicy) Evaluate(
 	)
 }
 
+// allowRestrictedGeneralTier gates a tier restricted to a specific group
+// (eg. executive, competitive_team): the group's members may only ever hold
+// their own dedicated tier, one at a time. Any other tier in this program is
+// unavailable to them, tagged with the given reason regardless of why.
 func allowRestrictedGeneralTier(
 	current *dto.MembershipDTO,
 	requested *dto.MembershipTierDTO,
 	requiredSlug string,
-) (dto.PurchaseType, bool, error) {
-	// The user already has an active general membership
-	if current != nil {
-		return "", false, nil
-	}
-
+	restrictedReason dto.TierUnavailableReason,
+) EvaluationResult {
 	if requested.Slug != requiredSlug {
-		return "", false, nil
+		return EvaluationResult{Reason: restrictedReason}
 	}
 
-	return dto.PurchaseNew, true, nil
+	if current != nil {
+		if current.Slug == requested.Slug {
+			return EvaluationResult{Reason: dto.ReasonAlreadyOwned}
+		}
+		// Holds a different tier in this program (eg. a "day" pass from
+		// before joining the group) — can't also hold this one.
+		return EvaluationResult{Reason: dto.ReasonNotEligibleCurrent}
+	}
+
+	return EvaluationResult{PurchaseType: dto.PurchaseNew, Allowed: true}
 }

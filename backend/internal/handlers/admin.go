@@ -428,6 +428,50 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
+Returns the executive display settings for a single user.
+
+API URL: GET /admin/exec-profile/{id}
+
+Returns:
+
+	response body containing the profile under the "exec_profile" key (HTTP 200)
+
+Raises:
+
+	400: malformed user ID
+	401: user is not authenticated
+	403: user is not an admin
+	404: executive profile does not exist
+	500: the executive profile could not be loaded
+*/
+func (h *AdminHandler) GetExecProfile(w http.ResponseWriter, r *http.Request) {
+	requestId := middleware.GetReqID(r.Context())
+	targetUserId := chi.URLParam(r, "id")
+	if _, err := util.GetValidatedUUID(targetUserId); err != nil {
+		util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid user ID.", requestId)
+		return
+	}
+
+	profile, err := h.adminService.GetExecProfile(r.Context(), targetUserId)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			util.WriteApiResponse(w, http.StatusNotFound, "NOT_FOUND", err.Error(), requestId)
+			return
+		}
+
+		slog.ErrorContext(r.Context(), "unable to load exec profile",
+			"error", err,
+			"request_id", requestId,
+			"user_id", targetUserId,
+		)
+		util.WriteApiResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load exec profile.", requestId)
+		return
+	}
+
+	util.WriteJson(w, http.StatusOK, map[string]*dto.AdminExecProfileDTO{"exec_profile": profile})
+}
+
+/*
 Updates the editable fields of the executive profile of a single user.
 
 API URL: PATCH /admin/exec-profile/{id}
@@ -500,7 +544,7 @@ func (h *AdminHandler) UpdateExecProfile(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	util.WriteJson(w, http.StatusOK, map[string]db.GetExecProfileByUserIDRow{"exec_profile": profile})
+	util.WriteJson(w, http.StatusOK, map[string]*dto.AdminExecProfileDTO{"exec_profile": profile})
 }
 
 /*
