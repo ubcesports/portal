@@ -1,0 +1,17 @@
+# Deliberately independent of compose.yaml and developer .env files.
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: portal_e2e
+      POSTGRES_PASSWORD: portal_e2e
+      POSTGRES_DB: portal_e2e
+    ports:
+      - "127.0.0.1:15433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal_e2e -d portal_e2e"]
+      interval: 1s
+      timeout: 5s
+      retries: 30

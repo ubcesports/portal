@@ -22,6 +22,12 @@ func (g *uuidGenerator) Generate(_ context.Context) (any, error) {
 }
 
 func NewLimen(db *sql.DB) (*limen.Limen, error) {
+	return NewLimenWithDiscoveryURL(db, "https://id.zetrova.com/.well-known/openid-configuration")
+}
+
+// NewLimenWithDiscoveryURL allows alternate provider wiring without changing
+// production authentication, callback handling, or session middleware.
+func NewLimenWithDiscoveryURL(db *sql.DB, discoveryURL string, httpOptions ...limen.HTTPConfigOption) (*limen.Limen, error) {
 	schema := limen.NewDefaultSchemaConfig(
 		limen.WithSchemaIDGenerator(&uuidGenerator{}),
 	)
@@ -33,7 +39,7 @@ func NewLimen(db *sql.DB) (*limen.Limen, error) {
 		oauthgeneric.WithRedirectURL(os.Getenv("OAUTH_CALLBACK_URL")),
 		oauthgeneric.WithScopes("openid", "profile", "email"),
 
-		oauthgeneric.WithDiscoveryURL("https://id.zetrova.com/.well-known/openid-configuration"),
+		oauthgeneric.WithDiscoveryURL(discoveryURL),
 
 		oauthgeneric.WithMapUserInfo(func(raw map[string]any) (*oauth.ProviderUserInfo, error) {
 			id, _ := raw["sub"].(string)
@@ -57,9 +63,10 @@ func NewLimen(db *sql.DB) (*limen.Limen, error) {
 
 	return limen.New(&limen.Config{
 		Database: sqladapter.NewPostgreSQL(db),
-		HTTP: limen.NewDefaultHTTPConfig(
-			limen.WithHTTPTrustedOrigins(TrustedFrontendOrigins()),
-		),
+		HTTP: limen.NewDefaultHTTPConfig(append(
+			[]limen.HTTPConfigOption{limen.WithHTTPTrustedOrigins(TrustedFrontendOrigins())},
+			httpOptions...,
+		)...),
 		Schema: schema,
 		Plugins: []limen.Plugin{
 			oauth.New(
