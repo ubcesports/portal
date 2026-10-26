@@ -98,4 +98,3 @@ const (
 	LoungeStationTypeCab     LoungeStationType = "cab"
 	LoungeStationTypeCheckIn LoungeStationType = "check_in"
 )
-

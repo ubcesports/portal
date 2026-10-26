@@ -28,9 +28,11 @@ Returns a list of all lounge stations, including layout coordinates and active s
 API URL: GET /lounge/stations
 
 Returns:
+
 	[]dto.LoungeStationDTO (HTTP 200)
 
 Raises:
+
 	500: unable to load lounge stations
 */
 func (h *LoungeHandler) GetStations(w http.ResponseWriter, r *http.Request) {
@@ -55,13 +57,16 @@ Updates a lounge station's label or closed status.
 API URL: PATCH /lounge/stations/{id}
 
 Args (JSON body):
+
 	label: optional new station label
 	closed: optional new closed status (boolean)
 
 Returns:
+
 	the updated lounge station (HTTP 200)
 
 Raises:
+
 	400: invalid UUID or request body
 	404: lounge station not found
 	500: unable to update lounge station
