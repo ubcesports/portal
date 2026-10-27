@@ -11,6 +11,76 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const checkoutLoungeSession = `-- name: CheckoutLoungeSession :one
+WITH updated_session AS (
+    UPDATE lounge_sessions
+    SET 
+        check_out_time = NOW(),
+        checked_out_by = $2
+    WHERE id = $1 AND check_out_time IS NULL
+    RETURNING 
+        id,
+        user_id,
+        membership_id,
+        station_id,
+        check_in_time,
+        check_out_time,
+        checked_in_by,
+        checked_out_by,
+        game
+)
+SELECT 
+    s.id,
+    s.user_id,
+    s.membership_id,
+    s.station_id,
+    s.check_in_time,
+    COALESCE(u.check_out_time, s.check_out_time) AS check_out_time,
+    s.checked_in_by,
+    COALESCE(u.checked_out_by, s.checked_out_by) AS checked_out_by,
+    s.game,
+    (u.id IS NULL)::boolean AS already_checked_out
+FROM lounge_sessions s
+LEFT JOIN updated_session u ON u.id = s.id
+WHERE s.id = $1
+`
+
+type CheckoutLoungeSessionParams struct {
+	ID           pgtype.UUID
+	CheckedOutBy pgtype.UUID
+}
+
+type CheckoutLoungeSessionRow struct {
+	ID                pgtype.UUID
+	UserID            pgtype.UUID
+	MembershipID      pgtype.UUID
+	StationID         pgtype.UUID
+	CheckInTime       pgtype.Timestamptz
+	CheckOutTime      pgtype.Timestamptz
+	CheckedInBy       pgtype.UUID
+	CheckedOutBy      pgtype.UUID
+	Game              pgtype.Text
+	AlreadyCheckedOut bool
+}
+
+func (q *Queries) CheckoutLoungeSession(ctx context.Context, arg CheckoutLoungeSessionParams) (CheckoutLoungeSessionRow, error) {
+	row := q.db.QueryRow(ctx, checkoutLoungeSession, arg.ID, arg.CheckedOutBy)
+	var i CheckoutLoungeSessionRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.MembershipID,
+		&i.StationID,
+		&i.CheckInTime,
+		&i.CheckOutTime,
+		&i.CheckedInBy,
+		&i.CheckedOutBy,
+		&i.Game,
+		&i.AlreadyCheckedOut,
+	)
+	return i, err
+}
+
 const getLoungeStationByID = `-- name: GetLoungeStationByID :one
 SELECT 
     id,
