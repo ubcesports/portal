@@ -557,6 +557,7 @@ type MembershipTier struct {
 	ProgramID       pgtype.UUID
 	ExpirationType  MembershipExpirationType
 	Limitations     []string
+	LoungeAccess    bool
 }
 
 type MembershipTierPrice struct {

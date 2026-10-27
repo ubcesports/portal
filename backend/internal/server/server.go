@@ -106,6 +106,10 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.Get("/admin/analytics/memberships-over-time", params.AnalyticsHandler.GetMembershipsBoughtOverTime)
 		r.Get("/admin/analytics/revenue-over-time", params.AnalyticsHandler.GetRevenueOverTime)
 		r.Get("/admin/analytics/export", params.AnalyticsHandler.ExportCSV)
+
+		// temporarily put this under admin authentication until the lounge role is implemented
+		r.Get("/lounge/members/lookup", params.LoungeHandler.GetUsers)
+		r.Post("/lounge/sessions", params.LoungeHandler.CreateSession)
 	})
 
 	// All exec profile routes

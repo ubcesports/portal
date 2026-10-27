@@ -2,9 +2,24 @@ package service
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/ubcesports/memberships/internal/dto"
 	"github.com/ubcesports/memberships/internal/repository"
+	"github.com/ubcesports/memberships/internal/util"
+)
+
+var (
+	ErrInvalidLoungeSession  = errors.New("Invalid lounge session")
+	ErrNoLoungeAccess        = errors.New("User does not have lounge access")
+	ErrActiveSessionExists   = errors.New("User already has an active lounge session")
+	ErrStationClosed         = errors.New("Lounge station is closed")
+	ErrStationInUse          = errors.New("Lounge station is already in use")
+	ErrLoungeStationNotFound = errors.New("Lounge station not found")
 )
 
 type LoungeService struct {
@@ -13,6 +28,94 @@ type LoungeService struct {
 
 func NewLoungeService(loungeRepo *repository.LoungeRepository) *LoungeService {
 	return &LoungeService{loungeRepo: loungeRepo}
+}
+
+func (s *LoungeService) CreateLoungeSession(
+	ctx context.Context,
+	studentID string,
+	stationID string,
+	game *string,
+	checkedInBy string,
+) (*dto.LoungeSessionDTO, error) {
+	studentID = strings.TrimSpace(studentID)
+	if studentID == "" {
+		return nil, ErrInvalidLoungeSession
+	}
+	if _, err := util.GetValidatedUUID(stationID); err != nil {
+		return nil, ErrInvalidLoungeSession
+	}
+	if _, err := util.GetValidatedUUID(checkedInBy); err != nil {
+		return nil, ErrInvalidLoungeSession
+	}
+	if game != nil {
+		trimmedGame := strings.TrimSpace(*game)
+		if trimmedGame == "" {
+			game = nil
+		} else {
+			game = &trimmedGame
+		}
+	}
+
+	membership, err := s.loungeRepo.GetEligibleMembershipByStudentID(ctx, studentID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNoLoungeAccess
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get lounge membership for check-in: %w", err)
+	}
+
+	userID := membership.UserID.String()
+	hasActiveSession, err := s.loungeRepo.HasActiveSessionForUser(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("check member's active lounge session: %w", err)
+	}
+	if hasActiveSession {
+		return nil, ErrActiveSessionExists
+	}
+
+	station, err := s.loungeRepo.GetLoungeStationByIDWithActiveSession(ctx, stationID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrLoungeStationNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get lounge station for check-in: %w", err)
+	}
+	if station.Closed {
+		return nil, ErrStationClosed
+	}
+	if station.ActiveSessionID.Valid {
+		return nil, ErrStationInUse
+	}
+
+	session, err := s.loungeRepo.CreateLoungeSession(ctx, repository.CreateLoungeSessionParams{
+		StudentID:    studentID,
+		MembershipID: membership.MembershipID.String(),
+		StationID:    stationID,
+		CheckedInBy:  checkedInBy,
+		Game:         game,
+	})
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			switch pgErr.ConstraintName {
+			case "lounge_sessions_one_active_per_user":
+				return nil, ErrActiveSessionExists
+			case "lounge_sessions_one_active_per_station":
+				return nil, ErrStationInUse
+			}
+		}
+		return nil, fmt.Errorf("create lounge session: %w", err)
+	}
+
+	return &dto.LoungeSessionDTO{
+		ID:           session.ID.String(),
+		UserID:       session.UserID.String(),
+		MembershipID: session.MembershipID.String(),
+		StationID:    session.StationID.String(),
+		CheckInTime:  session.CheckInTime.Time,
+		CheckedInBy:  session.CheckedInBy.String(),
+		Game:         util.TextPointer(session.Game),
+	}, nil
 }
 
 func (s *LoungeService) GetLoungeStations(ctx context.Context) ([]dto.LoungeStationDTO, error) {

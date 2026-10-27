@@ -195,4 +195,8 @@ ON CONFLICT (stripe_price_id) DO UPDATE SET
     price_in_cents = EXCLUDED.price_in_cents,
     updated_at = NOW();
 
+UPDATE membership_tiers
+SET lounge_access = TRUE
+WHERE slug IN ('day', 'lounge', 'executive', 'competitive_team');
+
 COMMIT;
