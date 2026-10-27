@@ -1,7 +1,6 @@
 -- name: GetLoungeStations :many
 SELECT 
     ls.id,
-    ls.code,
     ls.label,
     ls.station_type,
     ls.closed,
@@ -20,7 +19,6 @@ ORDER BY ls.grid_row ASC, ls.grid_column ASC, ls.label ASC;
 -- name: GetLoungeStationByID :one
 SELECT 
     id,
-    code,
     label,
     station_type,
     closed,
@@ -36,7 +34,6 @@ WHERE id = $1;
 -- name: GetLoungeStationByIDWithActiveSession :one
 SELECT 
     ls.id,
-    ls.code,
     ls.label,
     ls.station_type,
     ls.closed,
@@ -61,7 +58,6 @@ SET
 WHERE id = sqlc.arg('id')
 RETURNING 
     id,
-    code,
     label,
     station_type,
     closed,

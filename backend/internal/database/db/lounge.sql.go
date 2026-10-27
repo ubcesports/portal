@@ -14,7 +14,6 @@ import (
 const getLoungeStationByID = `-- name: GetLoungeStationByID :one
 SELECT 
     id,
-    code,
     label,
     station_type,
     closed,
@@ -33,7 +32,6 @@ func (q *Queries) GetLoungeStationByID(ctx context.Context, id pgtype.UUID) (Lou
 	var i LoungeStation
 	err := row.Scan(
 		&i.ID,
-		&i.Code,
 		&i.Label,
 		&i.StationType,
 		&i.Closed,
@@ -50,7 +48,6 @@ func (q *Queries) GetLoungeStationByID(ctx context.Context, id pgtype.UUID) (Lou
 const getLoungeStationByIDWithActiveSession = `-- name: GetLoungeStationByIDWithActiveSession :one
 SELECT 
     ls.id,
-    ls.code,
     ls.label,
     ls.station_type,
     ls.closed,
@@ -69,7 +66,6 @@ WHERE ls.id = $1
 
 type GetLoungeStationByIDWithActiveSessionRow struct {
 	ID              pgtype.UUID
-	Code            string
 	Label           string
 	StationType     LoungeStationType
 	Closed          bool
@@ -87,7 +83,6 @@ func (q *Queries) GetLoungeStationByIDWithActiveSession(ctx context.Context, id 
 	var i GetLoungeStationByIDWithActiveSessionRow
 	err := row.Scan(
 		&i.ID,
-		&i.Code,
 		&i.Label,
 		&i.StationType,
 		&i.Closed,
@@ -105,7 +100,6 @@ func (q *Queries) GetLoungeStationByIDWithActiveSession(ctx context.Context, id 
 const getLoungeStations = `-- name: GetLoungeStations :many
 SELECT 
     ls.id,
-    ls.code,
     ls.label,
     ls.station_type,
     ls.closed,
@@ -124,7 +118,6 @@ ORDER BY ls.grid_row ASC, ls.grid_column ASC, ls.label ASC
 
 type GetLoungeStationsRow struct {
 	ID              pgtype.UUID
-	Code            string
 	Label           string
 	StationType     LoungeStationType
 	Closed          bool
@@ -148,7 +141,6 @@ func (q *Queries) GetLoungeStations(ctx context.Context) ([]GetLoungeStationsRow
 		var i GetLoungeStationsRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.Code,
 			&i.Label,
 			&i.StationType,
 			&i.Closed,
@@ -179,7 +171,6 @@ SET
 WHERE id = $3
 RETURNING 
     id,
-    code,
     label,
     station_type,
     closed,
@@ -202,7 +193,6 @@ func (q *Queries) UpdateLoungeStation(ctx context.Context, arg UpdateLoungeStati
 	var i LoungeStation
 	err := row.Scan(
 		&i.ID,
-		&i.Code,
 		&i.Label,
 		&i.StationType,
 		&i.Closed,

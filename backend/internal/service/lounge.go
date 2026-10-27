@@ -33,7 +33,6 @@ func (s *LoungeService) GetLoungeStations(ctx context.Context) ([]dto.LoungeStat
 
 		result = append(result, dto.LoungeStationDTO{
 			ID:              row.ID.String(),
-			Code:            row.Code,
 			Label:           row.Label,
 			StationType:     dto.LoungeStationType(row.StationType),
 			Closed:          row.Closed,
@@ -82,7 +81,6 @@ func (s *LoungeService) UpdateLoungeStation(ctx context.Context, id string, req 
 		}
 		return &dto.LoungeStationDTO{
 			ID:              currentWithSession.ID.String(),
-			Code:            currentWithSession.Code,
 			Label:           currentWithSession.Label,
 			StationType:     dto.LoungeStationType(currentWithSession.StationType),
 			Closed:          currentWithSession.Closed,
@@ -117,7 +115,6 @@ func (s *LoungeService) UpdateLoungeStation(ctx context.Context, id string, req 
 
 	return &dto.LoungeStationDTO{
 		ID:              updatedWithSession.ID.String(),
-		Code:            updatedWithSession.Code,
 		Label:           updatedWithSession.Label,
 		StationType:     dto.LoungeStationType(updatedWithSession.StationType),
 		Closed:          updatedWithSession.Closed,

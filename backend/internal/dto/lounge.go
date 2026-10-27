@@ -2,7 +2,6 @@ package dto
 
 type LoungeStationDTO struct {
 	ID              string            `json:"id"`
-	Code            string            `json:"code"`
 	Label           string            `json:"label"`
 	StationType     LoungeStationType `json:"station_type"`
 	Closed          bool              `json:"closed"`

@@ -502,7 +502,6 @@ type LoungeSession struct {
 
 type LoungeStation struct {
 	ID          pgtype.UUID
-	Code        string
 	Label       string
 	StationType LoungeStationType
 	Closed      bool
