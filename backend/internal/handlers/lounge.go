@@ -168,7 +168,7 @@ func (h *LoungeHandler) UpdateStation(w http.ResponseWriter, r *http.Request) {
 }
 
 /*
-Returns a filtered and paginated list of users.
+Returns the user matching the provided filter.
 
 API URL: GET /lounge/members/lookup
 
@@ -182,8 +182,7 @@ Args (query params):
 
 Returns:
 
-	users: paginated user profiles (HTTP 200)
-	total: number of users matching the filters
+	user: user profile (HTTP 200)
 
 Raises:
 
@@ -221,7 +220,7 @@ func (h *LoungeHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{
-		"users": members,
+		"user": members,
 	})
 }
 
