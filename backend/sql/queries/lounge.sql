@@ -67,3 +67,36 @@ RETURNING
     height,
     created_at,
     updated_at;
+
+-- name: CheckoutLoungeSession :one
+WITH updated_session AS (
+    UPDATE lounge_sessions
+    SET 
+        check_out_time = NOW(),
+        checked_out_by = sqlc.narg('checked_out_by')
+    WHERE id = sqlc.arg('id') AND check_out_time IS NULL
+    RETURNING 
+        id,
+        user_id,
+        membership_id,
+        station_id,
+        check_in_time,
+        check_out_time,
+        checked_in_by,
+        checked_out_by,
+        game
+)
+SELECT 
+    s.id,
+    s.user_id,
+    s.membership_id,
+    s.station_id,
+    s.check_in_time,
+    COALESCE(u.check_out_time, s.check_out_time) AS check_out_time,
+    s.checked_in_by,
+    COALESCE(u.checked_out_by, s.checked_out_by) AS checked_out_by,
+    s.game,
+    (u.id IS NULL)::boolean AS already_checked_out
+FROM lounge_sessions s
+LEFT JOIN updated_session u ON u.id = s.id
+WHERE s.id = sqlc.arg('id');

@@ -2,9 +2,17 @@ package service
 
 import (
 	"context"
+	"errors"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/ubcesports/memberships/internal/database/db"
 	"github.com/ubcesports/memberships/internal/dto"
 	"github.com/ubcesports/memberships/internal/repository"
+)
+
+var (
+	ErrSessionNotFound          = errors.New("SESSION_NOT_FOUND")
+	ErrSessionAlreadyCheckedOut = errors.New("SESSION_ALREADY_CHECKED_OUT")
 )
 
 type LoungeService struct {
@@ -125,4 +133,52 @@ func (s *LoungeService) UpdateLoungeStation(ctx context.Context, id string, req 
 		ActiveSessionID: activeSessionID,
 		InUse:           inUse,
 	}, nil
+}
+
+func (s *LoungeService) CheckoutSession(ctx context.Context, sessionID string, checkedOutBy *string) (*dto.LoungeSessionDTO, error) {
+	row, err := s.loungeRepo.CheckoutLoungeSession(ctx, sessionID, checkedOutBy)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrSessionNotFound
+		}
+		return nil, err
+	}
+
+	if row.AlreadyCheckedOut {
+		return nil, ErrSessionAlreadyCheckedOut
+	}
+
+	return toLoungeSessionDTO(row), nil
+}
+
+func toLoungeSessionDTO(s db.CheckoutLoungeSessionRow) *dto.LoungeSessionDTO {
+	res := &dto.LoungeSessionDTO{
+		ID:          s.ID.String(),
+		UserID:      s.UserID.String(),
+		StationID:   s.StationID.String(),
+		CheckInTime: s.CheckInTime.Time,
+		CheckedInBy: s.CheckedInBy.String(),
+	}
+
+	if s.MembershipID.Valid {
+		mID := s.MembershipID.String()
+		res.MembershipID = &mID
+	}
+
+	if s.CheckOutTime.Valid {
+		t := s.CheckOutTime.Time
+		res.CheckOutTime = &t
+	}
+
+	if s.CheckedOutBy.Valid {
+		cBy := s.CheckedOutBy.String()
+		res.CheckedOutBy = &cBy
+	}
+
+	if s.Game.Valid {
+		g := s.Game.String
+		res.Game = &g
+	}
+
+	return res
 }
