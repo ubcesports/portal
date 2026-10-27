@@ -209,7 +209,7 @@ func (h *LoungeHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	members := make([]dto.LoungeMemberLookupDTO, len(users))
+	members := make([]dto.LoungeMemberLookupDTO, 0, len(users))
 	for _, user := range users {
 		members = append(members, dto.LoungeMemberLookupDTO{
 			FullName:  user.FullName,
