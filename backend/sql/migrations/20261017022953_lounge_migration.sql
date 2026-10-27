@@ -8,7 +8,6 @@ CREATE TYPE lounge_station_type AS ENUM (
 
 CREATE TABLE lounge_stations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code VARCHAR NOT NULL UNIQUE,
   label VARCHAR NOT NULL,
   station_type lounge_station_type NOT NULL,
   closed BOOLEAN NOT NULL DEFAULT false,

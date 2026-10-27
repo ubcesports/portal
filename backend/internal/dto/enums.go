@@ -90,3 +90,11 @@ const (
 	ExecSocialPlatformTiktok    ExecSocialPlatformType = "tiktok"
 	ExecSocialPlatformLinkedIn  ExecSocialPlatformType = "linkedin"
 )
+
+type LoungeStationType string
+
+const (
+	LoungeStationTypePc      LoungeStationType = "pc"
+	LoungeStationTypeCab     LoungeStationType = "cab"
+	LoungeStationTypeCheckIn LoungeStationType = "check_in"
+)
