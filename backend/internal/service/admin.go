@@ -1287,6 +1287,15 @@ func (s *AdminService) getAdminAuditLogs(ctx context.Context, params db.GetAdmin
 
 	logs := make([]dto.AdminAuditLogResponse, 0, len(rows))
 	for _, row := range rows {
+		var targetUser *dto.AdminAuditLogActor
+		if row.TargetID.Valid {
+			targetUser = &dto.AdminAuditLogActor{
+				ActorUserId:    row.TargetID.String(),
+				ActorFullName:  row.TargetName.String,
+				ActorAvatarURL: row.TargetAvatarUrl.String,
+			}
+		}
+
 		logs = append(logs, dto.AdminAuditLogResponse{
 			Actor: dto.AdminAuditLogActor{
 				ActorUserId:    row.ActorID.String(),
@@ -1298,11 +1307,7 @@ func (s *AdminService) getAdminAuditLogs(ctx context.Context, params db.GetAdmin
 			Description: util.TextPointer(row.Description),
 			Outcome:     dto.AdminAuditLogOutcomeType(row.Outcome),
 			RequestId:   row.RequestID,
-			TargetUser: &dto.AdminAuditLogActor{
-				ActorUserId:    row.TargetID.String(),
-				ActorFullName:  row.TargetName.String,
-				ActorAvatarURL: row.TargetAvatarUrl.String,
-			},
+			TargetUser:  targetUser,
 		})
 	}
 
