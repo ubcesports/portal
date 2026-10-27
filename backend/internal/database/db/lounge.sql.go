@@ -11,6 +11,119 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const createLoungeSession = `-- name: CreateLoungeSession :one
+INSERT INTO lounge_sessions (
+    user_id,
+    membership_id,
+    station_id,
+    checked_in_by,
+    game
+)
+SELECT
+    u.id,
+    $1,
+    $2,
+    $3,
+    $4
+FROM users AS u
+WHERE u.student_id = $5
+RETURNING
+    id,
+    user_id,
+    membership_id,
+    station_id,
+    check_in_time,
+    checked_in_by,
+    game
+`
+
+type CreateLoungeSessionParams struct {
+	MembershipID pgtype.UUID
+	StationID    pgtype.UUID
+	CheckedInBy  pgtype.UUID
+	Game         pgtype.Text
+	StudentID    pgtype.Text
+}
+
+type CreateLoungeSessionRow struct {
+	ID           pgtype.UUID
+	UserID       pgtype.UUID
+	MembershipID pgtype.UUID
+	StationID    pgtype.UUID
+	CheckInTime  pgtype.Timestamptz
+	CheckedInBy  pgtype.UUID
+	Game         pgtype.Text
+}
+
+func (q *Queries) CreateLoungeSession(ctx context.Context, arg CreateLoungeSessionParams) (CreateLoungeSessionRow, error) {
+	row := q.db.QueryRow(ctx, createLoungeSession,
+		arg.MembershipID,
+		arg.StationID,
+		arg.CheckedInBy,
+		arg.Game,
+		arg.StudentID,
+	)
+	var i CreateLoungeSessionRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.MembershipID,
+		&i.StationID,
+		&i.CheckInTime,
+		&i.CheckedInBy,
+		&i.Game,
+	)
+	return i, err
+}
+
+const getActiveLoungeSessionByUserID = `-- name: GetActiveLoungeSessionByUserID :one
+SELECT id
+FROM lounge_sessions
+WHERE user_id = $1
+  AND check_out_time IS NULL
+LIMIT 1
+`
+
+func (q *Queries) GetActiveLoungeSessionByUserID(ctx context.Context, userID pgtype.UUID) (pgtype.UUID, error) {
+	row := q.db.QueryRow(ctx, getActiveLoungeSessionByUserID, userID)
+	var id pgtype.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const getLoungeEligibleMembershipByStudentID = `-- name: GetLoungeEligibleMembershipByStudentID :one
+SELECT
+    u.id AS user_id,
+    m.id AS membership_id
+FROM users AS u
+JOIN memberships AS m
+    ON m.user_id = u.id
+JOIN membership_tiers AS mt
+    ON mt.id = m.tier_id
+WHERE u.student_id = $1
+  AND m.cancelled_at IS NULL
+  AND m.started_at <= NOW()
+  AND m.expires_at > NOW()
+  AND mt.lounge_access IS TRUE
+ORDER BY
+    (mt.slug = 'lounge') DESC,
+    m.started_at DESC,
+    m.created_at DESC
+LIMIT 1
+`
+
+type GetLoungeEligibleMembershipByStudentIDRow struct {
+	UserID       pgtype.UUID
+	MembershipID pgtype.UUID
+}
+
+func (q *Queries) GetLoungeEligibleMembershipByStudentID(ctx context.Context, studentID pgtype.Text) (GetLoungeEligibleMembershipByStudentIDRow, error) {
+	row := q.db.QueryRow(ctx, getLoungeEligibleMembershipByStudentID, studentID)
+	var i GetLoungeEligibleMembershipByStudentIDRow
+	err := row.Scan(&i.UserID, &i.MembershipID)
+	return i, err
+}
+
 const getLoungeStationByID = `-- name: GetLoungeStationByID :one
 SELECT 
     id,
