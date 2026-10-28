@@ -5,12 +5,32 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/netip"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/ubcesports/memberships/internal/auth"
 )
+
+func clientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		ip := strings.TrimSpace(strings.SplitN(xff, ",", 2)[0])
+		if ip != "" {
+			return ip
+		}
+	}
+
+	if xrip := r.Header.Get("X-Real-IP"); xrip != "" {
+		return strings.TrimSpace(xrip)
+	}
+	
+	if addr, err := netip.ParseAddrPort(r.RemoteAddr); err == nil {
+		return addr.Addr().String()
+	}
+	return r.RemoteAddr
+}
 
 func logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +62,7 @@ func logger(next http.Handler) http.Handler {
 			"status", status,
 			"duration_ms", float64(time.Since(started).Microseconds()) / 1000,
 			"response_size_bytes", ww.BytesWritten(),
+			"remote_ip", clientIP(r),
 		}
 		attrs = append(attrs, clientIPAttrs(r)...)
 
@@ -76,6 +97,7 @@ func recoverer(next http.Handler) http.Handler {
 				"request_id", middleware.GetReqID(r.Context()),
 				"method", r.Method,
 				"path", r.URL.Path,
+				"remote_ip", clientIP(r),
 				"panic", value,
 				"stack", string(debug.Stack()),
 			}
