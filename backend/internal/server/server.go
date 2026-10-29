@@ -57,6 +57,7 @@ func provideRouter(params RouterParams) *chi.Mux {
 	r.Get("/exec-profiles", params.ExecProfileHandler.GetExecProfiles)
 	r.Get("/lounge/stations", params.LoungeHandler.GetStations)
 	r.Patch("/lounge/stations/{id}", params.LoungeHandler.UpdateStation)
+	r.Post("/lounge/sessions/{session_id}/check-out", params.LoungeHandler.CheckoutSession)
 
 	// All protected routes
 	r.Group(func(r chi.Router) {

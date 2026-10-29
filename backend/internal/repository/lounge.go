@@ -58,3 +58,24 @@ func (r *LoungeRepository) UpdateLoungeStation(ctx context.Context, id string, l
 		Closed: pgClosed,
 	})
 }
+
+func (r *LoungeRepository) CheckoutLoungeSession(ctx context.Context, id string, checkedOutBy *string) (db.CheckoutLoungeSessionRow, error) {
+	pgID, err := util.GetValidatedUUID(id)
+	if err != nil {
+		return db.CheckoutLoungeSessionRow{}, err
+	}
+
+	var pgCheckedOutBy pgtype.UUID
+	if checkedOutBy != nil {
+		parsedUUID, err := util.GetValidatedUUID(*checkedOutBy)
+		if err != nil {
+			return db.CheckoutLoungeSessionRow{}, err
+		}
+		pgCheckedOutBy = parsedUUID
+	}
+
+	return r.store.CheckoutLoungeSession(ctx, db.CheckoutLoungeSessionParams{
+		ID:           pgID,
+		CheckedOutBy: pgCheckedOutBy,
+	})
+}
