@@ -45,9 +45,9 @@ func TestCheckoutSessionRejectsInvalidUUID(t *testing.T) {
 	handler := &LoungeHandler{}
 
 	r := chi.NewRouter()
-	r.Post("/lounge/sessions/{session_id}/checkout", handler.CheckoutSession)
+	r.Post("/lounge/sessions/{session_id}/check-out", handler.CheckoutSession)
 
-	req := httptest.NewRequest(http.MethodPost, "/lounge/sessions/not-a-valid-uuid/checkout", nil)
+	req := httptest.NewRequest(http.MethodPost, "/lounge/sessions/not-a-valid-uuid/check-out", nil)
 	rec := httptest.NewRecorder()
 
 	r.ServeHTTP(rec, req)
@@ -61,9 +61,9 @@ func TestCheckoutSessionRejectsMalformedBody(t *testing.T) {
 	handler := &LoungeHandler{}
 
 	r := chi.NewRouter()
-	r.Post("/lounge/sessions/{session_id}/checkout", handler.CheckoutSession)
+	r.Post("/lounge/sessions/{session_id}/check-out", handler.CheckoutSession)
 
-	req := httptest.NewRequest(http.MethodPost, "/lounge/sessions/c1000000-0000-4000-8000-000000000001/checkout", bytes.NewBufferString(`invalid json`))
+	req := httptest.NewRequest(http.MethodPost, "/lounge/sessions/c1000000-0000-4000-8000-000000000001/check-out", bytes.NewBufferString(`invalid json`))
 	rec := httptest.NewRecorder()
 
 	r.ServeHTTP(rec, req)
@@ -77,9 +77,9 @@ func TestCheckoutSessionRejectsInvalidCheckedOutByUUID(t *testing.T) {
 	handler := &LoungeHandler{}
 
 	r := chi.NewRouter()
-	r.Post("/lounge/sessions/{session_id}/checkout", handler.CheckoutSession)
+	r.Post("/lounge/sessions/{session_id}/check-out", handler.CheckoutSession)
 
-	req := httptest.NewRequest(http.MethodPost, "/lounge/sessions/c1000000-0000-4000-8000-000000000001/checkout", bytes.NewBufferString(`{"checked_out_by":"not-a-uuid"}`))
+	req := httptest.NewRequest(http.MethodPost, "/lounge/sessions/c1000000-0000-4000-8000-000000000001/check-out", bytes.NewBufferString(`{"checked_out_by":"not-a-uuid"}`))
 	rec := httptest.NewRecorder()
 
 	r.ServeHTTP(rec, req)
