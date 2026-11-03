@@ -80,6 +80,41 @@ jobs:
         working-directory: backend
         run: go build ./...
 
+  e2e:
+    name: E2E (Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        run: npm ci --prefix frontend
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Run isolated full-stack tests
+        run: make e2e
+      - name: Upload browser reports and service logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-diagnostics
+          path: |
+            frontend/playwright-report/
+            frontend/test-results/
+            .e2e/logs/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: ignore
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest

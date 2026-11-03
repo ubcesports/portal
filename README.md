@@ -211,6 +211,20 @@ Then open [http://localhost:3000](http://localhost:3000). The API health endpoin
 | `make migration-down`                 | Roll back one migration                                     |
 | `make seed file=membership_tiers.sql` | Run a named seed from `backend/sql/seeds`                   |
 
+### Browser E2E tests
+
+The Playwright suite runs the real frontend and API against an isolated PostgreSQL database and local OAuth/payment/email substitutes. No integration credentials are required.
+
+```bash
+cd frontend
+npm ci
+npx playwright install chromium # Linux: add --with-deps
+cd ..
+make e2e
+```
+
+Docker must be running. Use `make e2e-ui` or `make e2e-headed` to debug. See [the E2E guide](docs/e2e-testing.md) for prerequisites, isolation, coverage, artifacts, and adding tests.
+
 ### Changing the database schema
 
 Create a new migration instead of editing one that may already be deployed:

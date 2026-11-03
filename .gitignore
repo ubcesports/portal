@@ -1,6 +1,9 @@
 .env
 .env.local
 
+# Disposable E2E binaries, logs, and run markers
+.e2e/
+
 # direnv
 .direnv/
 .envrc

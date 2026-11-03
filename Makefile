@@ -10,6 +10,17 @@ POSTGRES_PORT ?= 5433
 POSTGRES_ENV = PGHOST="$(POSTGRES_HOST)" PGPORT="$(POSTGRES_PORT)" PGUSER="$(POSTGRES_USER)" PGPASSWORD="$(POSTGRES_PASSWORD)" PGDATABASE="$(POSTGRES_DB)" PGSSLMODE=disable
 DOCKER_COMPOSE = docker compose --env-file backend/.env -f deploy/compose.local.yaml
 
+# Isolated browser tests (never use the development database).
+.PHONY: e2e e2e-ui e2e-headed
+e2e:
+	bash scripts/e2e.sh $(E2E_ARGS)
+
+e2e-ui:
+	bash scripts/e2e.sh --ui $(E2E_ARGS)
+
+e2e-headed:
+	bash scripts/e2e.sh --headed $(E2E_ARGS)
+
 # nextjs commands
 
 fe:
