@@ -35,3 +35,14 @@ type LoungeSessionDTO struct {
 type CheckoutSessionRequestDTO struct {
 	CheckedOutBy *string `json:"checked_out_by"`
 }
+
+// LoungeSessionHistoryDTO is a past or active lounge session shown in a user's history.
+// DurationSeconds is nil while the session is still active (not checked out).
+type LoungeSessionHistoryDTO struct {
+	ID              string     `json:"id"`
+	Game            *string    `json:"game"`
+	StationLabel    string     `json:"station_label"`
+	CheckInTime     time.Time  `json:"check_in_time"`
+	CheckOutTime    *time.Time `json:"check_out_time"`
+	DurationSeconds *int64     `json:"duration_seconds"`
+}

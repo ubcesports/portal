@@ -81,6 +81,53 @@ func (q *Queries) CheckoutLoungeSession(ctx context.Context, arg CheckoutLoungeS
 	return i, err
 }
 
+const getLoungeSessionsByUserId = `-- name: GetLoungeSessionsByUserId :many
+SELECT
+    ls.id,
+    ls.game,
+    ls.check_in_time,
+    ls.check_out_time,
+    st.label AS station_label
+FROM lounge_sessions ls
+JOIN lounge_stations st ON st.id = ls.station_id
+WHERE ls.user_id = $1
+ORDER BY ls.check_in_time DESC
+`
+
+type GetLoungeSessionsByUserIdRow struct {
+	ID           pgtype.UUID
+	Game         pgtype.Text
+	CheckInTime  pgtype.Timestamptz
+	CheckOutTime pgtype.Timestamptz
+	StationLabel string
+}
+
+func (q *Queries) GetLoungeSessionsByUserId(ctx context.Context, userID pgtype.UUID) ([]GetLoungeSessionsByUserIdRow, error) {
+	rows, err := q.db.Query(ctx, getLoungeSessionsByUserId, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLoungeSessionsByUserIdRow
+	for rows.Next() {
+		var i GetLoungeSessionsByUserIdRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Game,
+			&i.CheckInTime,
+			&i.CheckOutTime,
+			&i.StationLabel,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getLoungeStationByID = `-- name: GetLoungeStationByID :one
 SELECT 
     id,
