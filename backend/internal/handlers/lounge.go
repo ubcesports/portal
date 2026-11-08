@@ -177,3 +177,76 @@ func (h *LoungeHandler) CheckoutSession(w http.ResponseWriter, r *http.Request) 
 
 	util.WriteJson(w, http.StatusOK, updated)
 }
+
+/*
+Returns the current user's lounge session history, newest first.
+
+API URL: GET /lounge/sessions/me
+
+Args:
+
+	auth.Session user id
+
+Returns:
+
+	[]dto.LoungeSessionHistoryDTO (HTTP 200), empty array if the user has no sessions
+
+Raises:
+
+	401: user is not authenticated
+	500: unable to load lounge sessions
+*/
+func (h *LoungeHandler) GetMySessions(w http.ResponseWriter, r *http.Request) {
+	requestID := middleware.GetReqID(r.Context())
+	userID, ok := util.CurrentUserID(r)
+	if !ok {
+		util.WriteApiResponse(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", requestID)
+		return
+	}
+
+	h.writeSessionHistory(w, r, userID, requestID)
+}
+
+/*
+Returns a single user's lounge session history, newest first.
+
+API URL: GET /admin/users/{id}/lounge-sessions
+
+Args:
+
+	id: UUID of the user in URL path
+
+Returns:
+
+	[]dto.LoungeSessionHistoryDTO (HTTP 200), empty array if the user has no sessions
+
+Raises:
+
+	400: invalid user ID
+	500: unable to load lounge sessions
+*/
+func (h *LoungeHandler) GetUserSessions(w http.ResponseWriter, r *http.Request) {
+	requestID := middleware.GetReqID(r.Context())
+	userID := chi.URLParam(r, "id")
+	if _, err := util.GetValidatedUUID(userID); err != nil {
+		util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_ID", "Invalid user ID.", requestID)
+		return
+	}
+
+	h.writeSessionHistory(w, r, userID, requestID)
+}
+
+func (h *LoungeHandler) writeSessionHistory(w http.ResponseWriter, r *http.Request, userID, requestID string) {
+	sessions, err := h.loungeService.GetSessionHistory(r.Context(), userID)
+	if err != nil {
+		slog.ErrorContext(r.Context(), "unable to load lounge sessions",
+			"error", err,
+			"user_id", userID,
+			"request_id", requestID,
+		)
+		util.WriteApiResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load lounge sessions.", requestID)
+		return
+	}
+
+	util.WriteJson(w, http.StatusOK, sessions)
+}

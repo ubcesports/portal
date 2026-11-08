@@ -8,6 +8,7 @@ import (
 	"github.com/ubcesports/memberships/internal/database/db"
 	"github.com/ubcesports/memberships/internal/dto"
 	"github.com/ubcesports/memberships/internal/repository"
+	"github.com/ubcesports/memberships/internal/util"
 )
 
 var (
@@ -178,6 +179,38 @@ func toLoungeSessionDTO(s db.CheckoutLoungeSessionRow) *dto.LoungeSessionDTO {
 	if s.Game.Valid {
 		g := s.Game.String
 		res.Game = &g
+	}
+
+	return res
+}
+
+// GetSessionHistory returns every lounge session for the user, newest first.
+func (s *LoungeService) GetSessionHistory(ctx context.Context, userID string) ([]dto.LoungeSessionHistoryDTO, error) {
+	rows, err := s.loungeRepo.GetLoungeSessionsByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]dto.LoungeSessionHistoryDTO, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, toLoungeSessionHistoryDTO(row))
+	}
+
+	return result, nil
+}
+
+func toLoungeSessionHistoryDTO(row db.GetLoungeSessionsByUserIdRow) dto.LoungeSessionHistoryDTO {
+	res := dto.LoungeSessionHistoryDTO{
+		ID:           row.ID.String(),
+		Game:         util.TextPointer(row.Game),
+		StationLabel: row.StationLabel,
+		CheckInTime:  row.CheckInTime.Time,
+		CheckOutTime: util.TimestampPointer(row.CheckOutTime),
+	}
+
+	if res.CheckOutTime != nil {
+		seconds := int64(res.CheckOutTime.Sub(res.CheckInTime).Seconds())
+		res.DurationSeconds = &seconds
 	}
 
 	return res
