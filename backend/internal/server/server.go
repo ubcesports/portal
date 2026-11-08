@@ -77,6 +77,7 @@ func provideRouter(params RouterParams) *chi.Mux {
 
 		r.Get("/membership/me/current", params.MembershipHandler.GetCurrentMembershipWithTransaction)
 		r.Get("/membership/me/all", params.MembershipHandler.GetAllMembershipsWithTransactions)
+		r.Get("/lounge/sessions/me", params.LoungeHandler.GetMySessions)
 		r.Get("/membership/tiers/eligible", params.MembershipHandler.GetEligibleTiersWithPrices)
 		r.Post("/membership/checkout", params.MembershipHandler.CreateMembershipCheckoutSession)
 	})
@@ -91,6 +92,7 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.Get("/admin/membership-tiers", params.AdminHandler.GetMembershipTierOptions)
 		r.Get("/admin/users/{id}", params.AdminHandler.GetUser)
 		r.Get("/admin/users/{id}/memberships", params.AdminHandler.GetUserMemberships)
+		r.Get("/admin/users/{id}/lounge-sessions", params.LoungeHandler.GetUserSessions)
 		r.Patch("/admin/users/{id}", params.AdminHandler.UpdateUser)
 		r.Get("/admin/audit-logs", params.AdminHandler.GetAdminAuditLogs)
 		r.Get("/admin/audit-logs/export", params.AdminHandler.ExportAuditLogsCSV)
