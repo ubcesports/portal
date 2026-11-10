@@ -569,6 +569,26 @@ type MembershipTierPrice struct {
 	PriceInCents      pgtype.Int8
 }
 
+type Permission struct {
+	Permission string
+}
+
+type Role struct {
+	ID              pgtype.UUID
+	Name            string
+	Description     pgtype.Text
+	Color           pgtype.Text
+	DisplayOrder    int32
+	CreatedByUserID pgtype.UUID
+	CreatedAt       pgtype.Timestamptz
+	UpdatedAt       pgtype.Timestamptz
+}
+
+type RolePermission struct {
+	RoleID     pgtype.UUID
+	Permission string
+}
+
 type Session struct {
 	ID         pgtype.UUID
 	Token      string
@@ -615,6 +635,13 @@ type UserGroup struct {
 	UserID     pgtype.UUID
 	Group      GroupType
 	AssignedAt pgtype.Timestamptz
+}
+
+type UserRole struct {
+	UserID           pgtype.UUID
+	RoleID           pgtype.UUID
+	AssignedByUserID pgtype.UUID
+	AssignedAt       pgtype.Timestamptz
 }
 
 type Verification struct {

@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/ubcesports/memberships/internal/auth"
 	"github.com/ubcesports/memberships/internal/database/db"
 	"github.com/ubcesports/memberships/internal/dto"
 	"github.com/ubcesports/memberships/internal/service"
@@ -391,6 +392,17 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	var updateUserRequest dto.AdminUpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&updateUserRequest); err != nil {
 		util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body. Please try again.", requestId)
+		return
+	}
+
+	// The route requires users.update; some fields need more than that.
+	// Changing a system role can grant admin, so only admins may do it.
+	if updateUserRequest.Role != nil && !auth.IsSystemAdmin(r.Context()) {
+		util.WriteApiResponse(w, http.StatusForbidden, "FORBIDDEN", "Only admins can change a user's role.", requestId)
+		return
+	}
+	if updateUserRequest.CancelMembershipId != nil && !auth.HasPermission(r.Context(), auth.PermissionMembershipsDelete) {
+		util.WriteApiResponse(w, http.StatusForbidden, "FORBIDDEN", "You do not have permission to cancel memberships.", requestId)
 		return
 	}
 

@@ -17,8 +17,15 @@ type RequestMetadata struct {
 type ExecGroupChecker interface {
 	HasExecGroup(ctx context.Context, userID string) (bool, error)
 }
+type RoleChecker interface {
+	HasAnyRole(ctx context.Context, userID string, roleNames []string) (bool, error)
+}
 
 const sessionKey contextKey = "session"
+
+// SystemRoleAdmin is the users.role value that grants full access, including
+// bypassing RequireRole checks.
+const SystemRoleAdmin = "admin"
 
 // Requires user to be signed in to access endpoints under this
 func RequireAuth(auth *limen.Limen) func(http.Handler) http.Handler {
@@ -44,9 +51,10 @@ func RequireAuth(auth *limen.Limen) func(http.Handler) http.Handler {
 	}
 }
 
-// Requires user to have these roles to access endpoints under this
-// eg. r.Use(auth.RequireRole("admin")) or r.Use(auth.RequireRole("admin", "member"))
-func RequireRole(roles ...string) func(http.Handler) http.Handler {
+// Requires user to have one of these system roles (the users.role column) to
+// access endpoints under this.
+// eg. r.Use(auth.RequireSystem("admin")) or r.Use(auth.RequireSystem("admin", "member"))
+func RequireSystem(roles ...string) func(http.Handler) http.Handler {
 	allowed := make(map[string]bool, len(roles))
 	for _, r := range roles {
 		allowed[r] = true
@@ -54,15 +62,49 @@ func RequireRole(roles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session := SessionFromContext(r.Context())
-			if session == nil {
+			if session == nil || session.User == nil {
 				writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
 				return
 			}
-			role, _ := session.User.Raw()["role"].(string)
-			if !allowed[role] {
+			if !allowed[systemRole(session.User)] {
 				writeError(w, http.StatusForbidden, "FORBIDDEN", "Forbidden")
 				return
 			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// Requires user to be assigned one of these custom roles (from the roles
+// system) to access endpoints under this. Users with the "admin" system role
+// bypass the check. Use after RequireAuth.
+// eg. r.Use(auth.RequireRole(roleRepository, "Treasurer")) or
+// r.Use(auth.RequireRole(roleRepository, "Treasurer", "President"))
+func RequireRole(checker RoleChecker, roles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			session := SessionFromContext(r.Context())
+			if session == nil || session.User == nil {
+				writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
+				return
+			}
+
+			userID, ok := session.User.ID.(string)
+			if !ok || userID == "" {
+				writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized")
+				return
+			}
+
+			allowed, err := hasRequiredRole(r.Context(), checker, userID, systemRole(session.User), roles)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to verify role")
+				return
+			}
+			if !allowed {
+				writeError(w, http.StatusForbidden, "FORBIDDEN", "Forbidden")
+				return
+			}
+
 			next.ServeHTTP(w, r)
 		})
 	}
@@ -114,6 +156,32 @@ func RequireExecGroup(checker ExecGroupChecker) func(http.Handler) http.Handler 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// hasRequiredRole lets system admins through and otherwise checks whether the
+// user is assigned any of the required custom roles.
+func hasRequiredRole(
+	ctx context.Context,
+	checker RoleChecker,
+	userID string,
+	systemRole string,
+	roles []string,
+) (bool, error) {
+	if systemRole == SystemRoleAdmin {
+		return true, nil
+	}
+	if len(roles) == 0 {
+		return false, nil
+	}
+	return checker.HasAnyRole(ctx, userID, roles)
+}
+
+func systemRole(user *limen.User) string {
+	if user == nil {
+		return ""
+	}
+	role, _ := user.Raw()["role"].(string)
+	return role
 }
 
 func isUserOnboarded(user *limen.User) bool {

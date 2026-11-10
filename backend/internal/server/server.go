@@ -35,7 +35,9 @@ type RouterParams struct {
 	StripeWebhookHandler        *handlers.StripeWebhookHandler
 	AnalyticsHandler            *handlers.AnalyticsHandler
 	LoungeHandler               *handlers.LoungeHandler
+	RoleHandler                 *handlers.RoleHandler
 	AdminRepository             *repository.AdminRepository
+	RoleRepository              *repository.RoleRepository
 	Limen                       *limen.Limen
 }
 
@@ -81,32 +83,53 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.Post("/membership/checkout", params.MembershipHandler.CreateMembershipCheckoutSession)
 	})
 
-	// All admin routes
 	r.Group(func(r chi.Router) {
 		r.Use(auth.RequireAuth(params.Limen))
-		r.Use(auth.RequireRole("admin"))
+		can := func(permission string) func(http.Handler) http.Handler {
+			return auth.RequirePermission(params.RoleRepository, permission)
+		}
 
-		r.Get("/admin/users", params.AdminHandler.GetUsers)
-		r.Get("/admin/users/export", params.AdminHandler.ExportUsersCSV)
-		r.Get("/admin/membership-tiers", params.AdminHandler.GetMembershipTierOptions)
-		r.Get("/admin/users/{id}", params.AdminHandler.GetUser)
-		r.Get("/admin/users/{id}/memberships", params.AdminHandler.GetUserMemberships)
-		r.Patch("/admin/users/{id}", params.AdminHandler.UpdateUser)
-		r.Get("/admin/audit-logs", params.AdminHandler.GetAdminAuditLogs)
-		r.Get("/admin/audit-logs/export", params.AdminHandler.ExportAuditLogsCSV)
-		r.Post("/admin/membership/add/{id}", params.AdminHandler.AddMembershipToUser)
-		r.Get("/admin/memberships/eligible/{id}", params.AdminHandler.GetEligibleTiersWithPricesById)
-		r.Get("/admin/exec-profile/{id}", params.AdminHandler.GetExecProfile)
-		r.Patch("/admin/exec-profile/{id}", params.AdminHandler.UpdateExecProfile)
-		r.Post("/admin/membership-invitations", params.MembershipInvitationHandler.Create)
-		r.Get("/admin/membership-invitations", params.MembershipInvitationHandler.GetAll)
-		r.Get("/admin/membership-invitations/{id}", params.MembershipInvitationHandler.GetByID)
-		r.Delete("/admin/membership-invitations/{id}", params.MembershipInvitationHandler.Delete)
+		// Users
+		r.With(can(auth.PermissionUsersView)).Get("/admin/users", params.AdminHandler.GetUsers)
+		r.With(can(auth.PermissionUsersExport)).Get("/admin/users/export", params.AdminHandler.ExportUsersCSV)
+		r.With(can(auth.PermissionUsersView)).Get("/admin/users/{id}", params.AdminHandler.GetUser)
+		// Role changes and membership cancellations need further checks in the handler.
+		r.With(can(auth.PermissionUsersUpdate)).Patch("/admin/users/{id}", params.AdminHandler.UpdateUser)
 
-		r.Get("/admin/analytics/summary", params.AnalyticsHandler.GetSummary)
-		r.Get("/admin/analytics/memberships-over-time", params.AnalyticsHandler.GetMembershipsBoughtOverTime)
-		r.Get("/admin/analytics/revenue-over-time", params.AnalyticsHandler.GetRevenueOverTime)
-		r.Get("/admin/analytics/export", params.AnalyticsHandler.ExportCSV)
+		// Membership tiers
+		r.With(can(auth.PermissionMembershipTiersView)).Get("/admin/membership-tiers", params.AdminHandler.GetMembershipTierOptions)
+
+		// Memberships
+		r.With(can(auth.PermissionMembershipsView)).Get("/admin/users/{id}/memberships", params.AdminHandler.GetUserMemberships)
+		r.With(can(auth.PermissionMembershipsCreate)).Get("/admin/memberships/eligible/{id}", params.AdminHandler.GetEligibleTiersWithPricesById)
+		r.With(can(auth.PermissionMembershipsCreate)).Post("/admin/membership/add/{id}", params.AdminHandler.AddMembershipToUser)
+
+		// Membership invitations
+		r.With(can(auth.PermissionMembershipInvitationsView)).Get("/admin/membership-invitations", params.MembershipInvitationHandler.GetAll)
+		r.With(can(auth.PermissionMembershipInvitationsView)).Get("/admin/membership-invitations/{id}", params.MembershipInvitationHandler.GetByID)
+		r.With(can(auth.PermissionMembershipInvitationsCreate)).Post("/admin/membership-invitations", params.MembershipInvitationHandler.Create)
+		r.With(can(auth.PermissionMembershipInvitationsDelete)).Delete("/admin/membership-invitations/{id}", params.MembershipInvitationHandler.Delete)
+
+		// Exec profiles
+		r.With(can(auth.PermissionExecProfilesUpdate)).Get("/admin/exec-profile/{id}", params.AdminHandler.GetExecProfile)
+		r.With(can(auth.PermissionExecProfilesUpdate)).Patch("/admin/exec-profile/{id}", params.AdminHandler.UpdateExecProfile)
+
+		// Audit logs
+		r.With(can(auth.PermissionAuditLogsView)).Get("/admin/audit-logs", params.AdminHandler.GetAdminAuditLogs)
+		r.With(can(auth.PermissionAuditLogsExport)).Get("/admin/audit-logs/export", params.AdminHandler.ExportAuditLogsCSV)
+
+		// Analytics
+		r.With(can(auth.PermissionAnalyticsView)).Get("/admin/analytics/summary", params.AnalyticsHandler.GetSummary)
+		r.With(can(auth.PermissionAnalyticsView)).Get("/admin/analytics/memberships-over-time", params.AnalyticsHandler.GetMembershipsBoughtOverTime)
+		r.With(can(auth.PermissionAnalyticsView)).Get("/admin/analytics/revenue-over-time", params.AnalyticsHandler.GetRevenueOverTime)
+		r.With(can(auth.PermissionAnalyticsExport)).Get("/admin/analytics/export", params.AnalyticsHandler.ExportCSV)
+
+		// Roles
+		r.With(can(auth.PermissionRolesView)).Get("/admin/roles", params.RoleHandler.GetAll)
+		r.With(can(auth.PermissionRolesView)).Get("/admin/roles/{id}", params.RoleHandler.GetByID)
+		r.With(can(auth.PermissionRolesCreate)).Post("/admin/roles", params.RoleHandler.Create)
+		r.With(can(auth.PermissionRolesUpdate)).Patch("/admin/roles/{id}", params.RoleHandler.Update)
+		r.With(can(auth.PermissionRolesDelete)).Delete("/admin/roles/{id}", params.RoleHandler.Delete)
 	})
 
 	// All exec profile routes
