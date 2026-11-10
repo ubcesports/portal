@@ -88,6 +88,7 @@ func provideRouter(params RouterParams) *chi.Mux {
 		can := func(permission string) func(http.Handler) http.Handler {
 			return auth.RequirePermission(params.RoleRepository, permission)
 		}
+		adminOnly := auth.RequireSystem(auth.SystemRoleAdmin)
 
 		// Users
 		r.With(can(auth.PermissionUsersView)).Get("/admin/users", params.AdminHandler.GetUsers)
@@ -125,11 +126,15 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.With(can(auth.PermissionAnalyticsExport)).Get("/admin/analytics/export", params.AnalyticsHandler.ExportCSV)
 
 		// Roles
-		r.With(can(auth.PermissionRolesView)).Get("/admin/roles", params.RoleHandler.GetAll)
-		r.With(can(auth.PermissionRolesView)).Get("/admin/roles/{id}", params.RoleHandler.GetByID)
-		r.With(can(auth.PermissionRolesCreate)).Post("/admin/roles", params.RoleHandler.Create)
-		r.With(can(auth.PermissionRolesUpdate)).Patch("/admin/roles/{id}", params.RoleHandler.Update)
-		r.With(can(auth.PermissionRolesDelete)).Delete("/admin/roles/{id}", params.RoleHandler.Delete)
+		// Managing roles can grant access the caller does not have, so it is
+		// limited to system admins. Members see their own roles on GET /profile.
+		r.With(adminOnly).Get("/admin/roles", params.RoleHandler.GetAll)
+		r.With(adminOnly).Get("/admin/roles/{id}", params.RoleHandler.GetByID)
+		r.With(adminOnly).Post("/admin/roles", params.RoleHandler.Create)
+		r.With(adminOnly).Patch("/admin/roles/{id}", params.RoleHandler.Update)
+		r.With(adminOnly).Delete("/admin/roles/{id}", params.RoleHandler.Delete)
+		r.With(adminOnly).Post("/admin/roles/{id}/users", params.RoleHandler.AssignUser)
+		r.With(adminOnly).Delete("/admin/roles/{id}/users/{userId}", params.RoleHandler.UnassignUser)
 	})
 
 	// All exec profile routes

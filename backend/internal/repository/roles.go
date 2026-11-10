@@ -176,6 +176,70 @@ func (r *RoleRepository) GetForUser(ctx context.Context, userID string) ([]dto.U
 	return roles, nil
 }
 
+// GetAssigneeName returns the full name of a user who can be assigned a role,
+// or pgx.ErrNoRows when the user does not exist.
+func (r *RoleRepository) GetAssigneeName(ctx context.Context, userID string) (string, error) {
+	pgUserID, err := util.GetValidatedUUID(userID)
+	if err != nil {
+		return "", fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	row, err := r.store.GetRoleAssignee(ctx, pgUserID)
+	if err != nil {
+		return "", err
+	}
+	return row.FullName, nil
+}
+
+// AssignUser gives the user the role. It reports false when the user already
+// had it.
+func (r *RoleRepository) AssignUser(ctx context.Context, roleID string, userID string, assignedByUserID string) (bool, error) {
+	pgRoleID, err := util.GetValidatedUUID(roleID)
+	if err != nil {
+		return false, fmt.Errorf("invalid role ID: %w", err)
+	}
+	pgUserID, err := util.GetValidatedUUID(userID)
+	if err != nil {
+		return false, fmt.Errorf("invalid user ID: %w", err)
+	}
+	pgAssignerID, err := util.GetValidatedUUID(assignedByUserID)
+	if err != nil {
+		return false, fmt.Errorf("invalid assigner user ID: %w", err)
+	}
+
+	rowsAffected, err := r.store.AssignUserRole(ctx, db.AssignUserRoleParams{
+		UserID:           pgUserID,
+		RoleID:           pgRoleID,
+		AssignedByUserID: pgAssignerID,
+	})
+	if err != nil {
+		return false, fmt.Errorf("assign user role: %w", err)
+	}
+	return rowsAffected > 0, nil
+}
+
+// UnassignUser removes the role from the user. It reports false when the user
+// did not have it.
+func (r *RoleRepository) UnassignUser(ctx context.Context, roleID string, userID string) (bool, error) {
+	pgRoleID, err := util.GetValidatedUUID(roleID)
+	if err != nil {
+		return false, fmt.Errorf("invalid role ID: %w", err)
+	}
+	pgUserID, err := util.GetValidatedUUID(userID)
+	if err != nil {
+		return false, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	rowsAffected, err := r.store.UnassignUserRole(ctx, db.UnassignUserRoleParams{
+		UserID: pgUserID,
+		RoleID: pgRoleID,
+	})
+	if err != nil {
+		return false, fmt.Errorf("unassign user role: %w", err)
+	}
+	return rowsAffected > 0, nil
+}
+
 // HasAnyRole reports whether the user is assigned at least one of the named
 // roles. It satisfies auth.RoleChecker.
 func (r *RoleRepository) HasAnyRole(ctx context.Context, userID string, roleNames []string) (bool, error) {

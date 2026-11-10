@@ -44,6 +44,30 @@ func (q *Queries) AddRolePermissionKeys(ctx context.Context, arg AddRolePermissi
 	return items, nil
 }
 
+const assignUserRole = `-- name: AssignUserRole :execrows
+INSERT INTO user_roles (user_id, role_id, assigned_by_user_id)
+VALUES (
+    $1,
+    $2,
+    $3
+)
+ON CONFLICT (user_id, role_id) DO NOTHING
+`
+
+type AssignUserRoleParams struct {
+	UserID           pgtype.UUID
+	RoleID           pgtype.UUID
+	AssignedByUserID pgtype.UUID
+}
+
+func (q *Queries) AssignUserRole(ctx context.Context, arg AssignUserRoleParams) (int64, error) {
+	result, err := q.db.Exec(ctx, assignUserRole, arg.UserID, arg.RoleID, arg.AssignedByUserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const createRole = `-- name: CreateRole :one
 INSERT INTO roles (
     name,
@@ -142,6 +166,24 @@ func (q *Queries) GetPermissionsForUser(ctx context.Context, userID pgtype.UUID)
 		return nil, err
 	}
 	return items, nil
+}
+
+const getRoleAssignee = `-- name: GetRoleAssignee :one
+SELECT id, full_name
+FROM users
+WHERE id = $1
+`
+
+type GetRoleAssigneeRow struct {
+	ID       pgtype.UUID
+	FullName string
+}
+
+func (q *Queries) GetRoleAssignee(ctx context.Context, id pgtype.UUID) (GetRoleAssigneeRow, error) {
+	row := q.db.QueryRow(ctx, getRoleAssignee, id)
+	var i GetRoleAssigneeRow
+	err := row.Scan(&i.ID, &i.FullName)
+	return i, err
 }
 
 const getRoleByID = `-- name: GetRoleByID :one
@@ -315,6 +357,25 @@ func (q *Queries) GetRolesForUser(ctx context.Context, userID pgtype.UUID) ([]Ge
 		return nil, err
 	}
 	return items, nil
+}
+
+const unassignUserRole = `-- name: UnassignUserRole :execrows
+DELETE FROM user_roles
+WHERE user_id = $1
+  AND role_id = $2
+`
+
+type UnassignUserRoleParams struct {
+	UserID pgtype.UUID
+	RoleID pgtype.UUID
+}
+
+func (q *Queries) UnassignUserRole(ctx context.Context, arg UnassignUserRoleParams) (int64, error) {
+	result, err := q.db.Exec(ctx, unassignUserRole, arg.UserID, arg.RoleID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateRole = `-- name: UpdateRole :one

@@ -20,22 +20,27 @@ func (f *fakePermissionLoader) GetPermissionsForUser(context.Context, string) ([
 	return f.permissions, f.err
 }
 
-func TestPermissionsMatchSeed(t *testing.T) {
-	seed, err := os.ReadFile("../../sql/seeds/permissions.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
+func TestPermissionsMatchMigrationAndSeed(t *testing.T) {
+	for _, path := range []string{
+		"../../sql/migrations/20261117000000_seed_permissions.sql",
+		"../../sql/seeds/permissions.sql",
+	} {
+		content, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	var seeded []string
-	for _, match := range regexp.MustCompile(`\('([a-z_.]+)'\)`).FindAllStringSubmatch(string(seed), -1) {
-		seeded = append(seeded, match[1])
-	}
+		var found []string
+		for _, match := range regexp.MustCompile(`\('([a-z_.]+)'\)`).FindAllStringSubmatch(string(content), -1) {
+			found = append(found, match[1])
+		}
 
-	defined := slices.Clone(AllPermissions)
-	slices.Sort(seeded)
-	slices.Sort(defined)
-	if !slices.Equal(seeded, defined) {
-		t.Fatalf("permission constants and seed differ:\n seed: %v\n code: %v", seeded, defined)
+		defined := slices.Clone(AllPermissions)
+		slices.Sort(found)
+		slices.Sort(defined)
+		if !slices.Equal(found, defined) {
+			t.Fatalf("permission constants and %s differ:\n file: %v\n code: %v", path, found, defined)
+		}
 	}
 }
 

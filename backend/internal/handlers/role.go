@@ -221,6 +221,90 @@ func (h *RoleHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+/*
+Assigns a role to a user.
+
+API URL: POST /admin/roles/{id}/users
+
+Args:
+
+	id: role UUID, from the URL path
+
+Args (JSON body):
+
+	user_id: UUID of the user to give the role to
+
+Returns:
+
+	no response body (HTTP 204)
+
+Raises:
+
+	400: malformed role or user ID, or invalid request body
+	401: user is not authenticated
+	403: user is not an admin
+	404: role or user does not exist
+	409: the user already has the role
+	500: role could not be assigned
+*/
+func (h *RoleHandler) AssignUser(w http.ResponseWriter, r *http.Request) {
+	requestID := middleware.GetReqID(r.Context())
+	actorUserID, ok := util.CurrentUserID(r)
+	if !ok {
+		util.WriteApiResponse(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", requestID)
+		return
+	}
+
+	var request dto.AssignRoleRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body.", requestID)
+		return
+	}
+
+	if err := h.service.AssignUser(r.Context(), chi.URLParam(r, "id"), request, actorUserID, requestID); err != nil {
+		h.writeError(w, r, err, "assign")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+/*
+Removes a role from a user.
+
+API URL: DELETE /admin/roles/{id}/users/{userId}
+
+Args:
+
+	id: role UUID, from the URL path
+	userId: user UUID, from the URL path
+
+Returns:
+
+	no response body (HTTP 204)
+
+Raises:
+
+	400: malformed role or user ID
+	401: user is not authenticated
+	403: user is not an admin
+	404: role or user does not exist, or the user does not have the role
+	500: role could not be removed
+*/
+func (h *RoleHandler) UnassignUser(w http.ResponseWriter, r *http.Request) {
+	requestID := middleware.GetReqID(r.Context())
+	actorUserID, ok := util.CurrentUserID(r)
+	if !ok {
+		util.WriteApiResponse(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", requestID)
+		return
+	}
+
+	if err := h.service.UnassignUser(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "userId"), actorUserID, requestID); err != nil {
+		h.writeError(w, r, err, "unassign")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *RoleHandler) writeError(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -235,6 +319,12 @@ func (h *RoleHandler) writeError(
 		util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_ROLE_PERMISSION", "One or more permissions are invalid.", requestID)
 	case errors.Is(err, service.ErrRoleNameTaken):
 		util.WriteApiResponse(w, http.StatusConflict, "ROLE_NAME_TAKEN", service.ErrRoleNameTaken.Error(), requestID)
+	case errors.Is(err, service.ErrRoleUserNotFound):
+		util.WriteApiResponse(w, http.StatusNotFound, "USER_NOT_FOUND", service.ErrRoleUserNotFound.Error(), requestID)
+	case errors.Is(err, service.ErrRoleNotAssigned):
+		util.WriteApiResponse(w, http.StatusNotFound, "ROLE_NOT_ASSIGNED", service.ErrRoleNotAssigned.Error(), requestID)
+	case errors.Is(err, service.ErrRoleAlreadyAssigned):
+		util.WriteApiResponse(w, http.StatusConflict, "ROLE_ALREADY_ASSIGNED", service.ErrRoleAlreadyAssigned.Error(), requestID)
 	case errors.Is(err, service.ErrRoleNotFound):
 		util.WriteApiResponse(w, http.StatusNotFound, "ROLE_NOT_FOUND", service.ErrRoleNotFound.Error(), requestID)
 	default:

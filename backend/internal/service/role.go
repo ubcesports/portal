@@ -21,12 +21,17 @@ var (
 	ErrRoleNameTaken         = errors.New("A role with this name already exists")
 	ErrInvalidRole           = errors.New("Invalid role")
 	ErrInvalidRolePermission = errors.New("Invalid role permission")
+	ErrRoleUserNotFound      = errors.New("User not found")
+	ErrRoleAlreadyAssigned   = errors.New("This user already has this role")
+	ErrRoleNotAssigned       = errors.New("This user does not have this role")
 )
 
 const (
-	actionRoleCreated = "role.created"
-	actionRoleEdited  = "role.updated"
-	actionRoleDeleted = "role.deleted"
+	actionRoleCreated    = "role.created"
+	actionRoleEdited     = "role.updated"
+	actionRoleDeleted    = "role.deleted"
+	actionRoleAssigned   = "role.assigned"
+	actionRoleUnassigned = "role.unassigned"
 
 	maxRoleNameLength = 50
 )
@@ -194,6 +199,119 @@ func (s *RoleService) Delete(
 		return s.auditRoleFailure(ctx, actorUserID, actionRoleDeleted, requestID, failureDescription, roleError(err))
 	}
 
+	return nil
+}
+
+// AssignUser gives a user a role. The user must exist and must not already
+// have the role.
+func (s *RoleService) AssignUser(
+	ctx context.Context,
+	roleID string,
+	request dto.AssignRoleRequest,
+	actorUserID string,
+	requestID string,
+) error {
+	request.UserID = strings.TrimSpace(request.UserID)
+	failureDescription := fmt.Sprintf("Failed to assign role %s to user %s", roleID, request.UserID)
+
+	if _, err := util.GetValidatedUUID(roleID); err != nil {
+		return s.auditRoleFailure(ctx, actorUserID, actionRoleAssigned, requestID, failureDescription, ErrInvalidRole)
+	}
+	if _, err := util.GetValidatedUUID(request.UserID); err != nil {
+		return s.auditRoleFailure(ctx, actorUserID, actionRoleAssigned, requestID, failureDescription, ErrInvalidRole)
+	}
+
+	err := s.repository.WithTx(ctx, func(repo *repository.RoleRepository) error {
+		role, err := repo.GetByID(ctx, roleID)
+		if err != nil {
+			return err
+		}
+		failureDescription = fmt.Sprintf("Failed to assign role %s to user %s", role.Name, request.UserID)
+
+		userName, err := repo.GetAssigneeName(ctx, request.UserID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrRoleUserNotFound
+		}
+		if err != nil {
+			return err
+		}
+		failureDescription = fmt.Sprintf("Failed to assign role %s to %s", role.Name, userName)
+
+		assigned, err := repo.AssignUser(ctx, roleID, request.UserID, actorUserID)
+		if err != nil {
+			return err
+		}
+		if !assigned {
+			return ErrRoleAlreadyAssigned
+		}
+
+		return repo.CreateAuditLog(ctx, repository.RoleAuditLogParams{
+			ActorUserID: actorUserID,
+			Action:      actionRoleAssigned,
+			Outcome:     db.AdminAuditOutcomeTypeSuccess,
+			RequestID:   requestID,
+			Description: fmt.Sprintf("Assigned role %s to %s", role.Name, userName),
+		})
+	})
+	if err != nil {
+		return s.auditRoleFailure(ctx, actorUserID, actionRoleAssigned, requestID, failureDescription, roleError(err))
+	}
+	return nil
+}
+
+// UnassignUser removes a role from a user who currently has it.
+func (s *RoleService) UnassignUser(
+	ctx context.Context,
+	roleID string,
+	userID string,
+	actorUserID string,
+	requestID string,
+) error {
+	userID = strings.TrimSpace(userID)
+	failureDescription := fmt.Sprintf("Failed to remove role %s from user %s", roleID, userID)
+
+	if _, err := util.GetValidatedUUID(roleID); err != nil {
+		return s.auditRoleFailure(ctx, actorUserID, actionRoleUnassigned, requestID, failureDescription, ErrInvalidRole)
+	}
+	if _, err := util.GetValidatedUUID(userID); err != nil {
+		return s.auditRoleFailure(ctx, actorUserID, actionRoleUnassigned, requestID, failureDescription, ErrInvalidRole)
+	}
+
+	err := s.repository.WithTx(ctx, func(repo *repository.RoleRepository) error {
+		role, err := repo.GetByID(ctx, roleID)
+		if err != nil {
+			return err
+		}
+		failureDescription = fmt.Sprintf("Failed to remove role %s from user %s", role.Name, userID)
+
+		userName, err := repo.GetAssigneeName(ctx, userID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrRoleUserNotFound
+		}
+		if err != nil {
+			return err
+		}
+		failureDescription = fmt.Sprintf("Failed to remove role %s from %s", role.Name, userName)
+
+		removed, err := repo.UnassignUser(ctx, roleID, userID)
+		if err != nil {
+			return err
+		}
+		if !removed {
+			return ErrRoleNotAssigned
+		}
+
+		return repo.CreateAuditLog(ctx, repository.RoleAuditLogParams{
+			ActorUserID: actorUserID,
+			Action:      actionRoleUnassigned,
+			Outcome:     db.AdminAuditOutcomeTypeSuccess,
+			RequestID:   requestID,
+			Description: fmt.Sprintf("Removed role %s from %s", role.Name, userName),
+		})
+	})
+	if err != nil {
+		return s.auditRoleFailure(ctx, actorUserID, actionRoleUnassigned, requestID, failureDescription, roleError(err))
+	}
 	return nil
 }
 

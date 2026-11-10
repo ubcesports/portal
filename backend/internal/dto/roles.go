@@ -20,6 +20,10 @@ type UpdateRoleRequest struct {
 	PermissionKeys *[]string `json:"permission_keys"`
 }
 
+type AssignRoleRequest struct {
+	UserID string `json:"user_id"`
+}
+
 // Response
 
 type RoleResponse struct {

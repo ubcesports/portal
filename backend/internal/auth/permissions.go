@@ -5,8 +5,9 @@ import (
 	"net/http"
 )
 
-// Permission keys granted through roles. These must match the rows seeded in
-// sql/seeds/permissions.sql; TestPermissionsMatchSeed enforces that.
+// Permission keys granted through roles. These must match the rows inserted by
+// sql/migrations/20261117000000_seed_permissions.sql and listed in
+// sql/seeds/permissions.sql; TestPermissionsMatchMigrationAndSeed enforces that.
 const (
 	PermissionUsersView   = "users.view"
 	PermissionUsersUpdate = "users.update"
@@ -29,11 +30,6 @@ const (
 
 	PermissionAnalyticsView   = "analytics.view"
 	PermissionAnalyticsExport = "analytics.export"
-
-	PermissionRolesView   = "roles.view"
-	PermissionRolesCreate = "roles.create"
-	PermissionRolesUpdate = "roles.update"
-	PermissionRolesDelete = "roles.delete"
 )
 
 // AllPermissions lists every permission key defined above.
@@ -53,10 +49,6 @@ var AllPermissions = []string{
 	PermissionAuditLogsExport,
 	PermissionAnalyticsView,
 	PermissionAnalyticsExport,
-	PermissionRolesView,
-	PermissionRolesCreate,
-	PermissionRolesUpdate,
-	PermissionRolesDelete,
 }
 
 type PermissionLoader interface {

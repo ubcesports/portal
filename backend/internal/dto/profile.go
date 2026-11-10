@@ -15,6 +15,9 @@ type ProfileDTO struct {
 	OnboardingCompletedAt *time.Time  `json:"onboarding_completed_at"`
 	AvatarURL             *string     `json:"avatar_url"`
 	Groups                []GroupType `json:"groups"`
+	// Roles are the custom roles assigned to the user, with the permissions each
+	// grants. Only GET /profile fills this in; it is null elsewhere.
+	Roles []UserRolePermissions `json:"roles"`
 }
 
 type OnboardUserRequest struct {

@@ -14,10 +14,11 @@ import (
 
 type ProfileHandler struct {
 	profileService *service.ProfileService
+	roleService    *service.RoleService
 }
 
-func NewProfileHandler(profileService *service.ProfileService) *ProfileHandler {
-	return &ProfileHandler{profileService: profileService}
+func NewProfileHandler(profileService *service.ProfileService, roleService *service.RoleService) *ProfileHandler {
+	return &ProfileHandler{profileService: profileService, roleService: roleService}
 }
 
 /*
@@ -32,6 +33,8 @@ Args:
 Returns:
 
 	response body containing the current user's profile under the "user" key (HTTP 200).
+	The profile includes "roles": the custom roles assigned to the user, each with
+	its id, name and permission_keys.
 
 Raises:
 
@@ -65,6 +68,21 @@ func (h *ProfileHandler) GetCurrentProfile(w http.ResponseWriter, r *http.Reques
 		)
 		return
 	}
+
+	roles, err := h.roleService.GetForUser(r.Context(), userId)
+	if err != nil {
+		slog.ErrorContext(r.Context(), "unable to load user roles",
+			"error", err,
+			"request_id", requestId,
+			"user_id", userId,
+		)
+		util.WriteApiResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load profile", requestId)
+		return
+	}
+	if roles == nil {
+		roles = []dto.UserRolePermissions{}
+	}
+	profile.Roles = roles
 
 	util.WriteJson(w, http.StatusOK, map[string]dto.ProfileDTO{"user": *profile})
 }

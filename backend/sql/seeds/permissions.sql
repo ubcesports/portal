@@ -14,9 +14,5 @@ VALUES
     ('audit_logs.view'),
     ('audit_logs.export'),
     ('analytics.view'),
-    ('analytics.export'),
-    ('roles.view'),
-    ('roles.create'),
-    ('roles.update'),
-    ('roles.delete')
+    ('analytics.export')
 ON CONFLICT (permission) DO NOTHING;

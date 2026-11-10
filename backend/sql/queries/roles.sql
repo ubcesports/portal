@@ -139,3 +139,22 @@ FROM user_roles ur
 JOIN role_permissions rp ON rp.role_id = ur.role_id
 WHERE ur.user_id = $1
 ORDER BY rp.permission;
+
+-- name: GetRoleAssignee :one
+SELECT id, full_name
+FROM users
+WHERE id = $1;
+
+-- name: AssignUserRole :execrows
+INSERT INTO user_roles (user_id, role_id, assigned_by_user_id)
+VALUES (
+    sqlc.arg('user_id'),
+    sqlc.arg('role_id'),
+    sqlc.arg('assigned_by_user_id')
+)
+ON CONFLICT (user_id, role_id) DO NOTHING;
+
+-- name: UnassignUserRole :execrows
+DELETE FROM user_roles
+WHERE user_id = $1
+  AND role_id = $2;
