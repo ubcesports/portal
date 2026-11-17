@@ -66,7 +66,7 @@ func TestNormalizeCreateRoleAllowsMaxLengthMultibyteName(t *testing.T) {
 }
 
 func TestNormalizeUpdateRole(t *testing.T) {
-	keys := []string{"roles.view", " roles.view "}
+	keys := []string{"audit_logs.view", " audit_logs.view "}
 	request, err := normalizeUpdateRole(dto.UpdateRoleRequest{
 		Name:           ptr(" Exec "),
 		Color:          ptr("#abcdef"),
@@ -78,7 +78,7 @@ func TestNormalizeUpdateRole(t *testing.T) {
 	if *request.Name != "Exec" || *request.Color != "#ABCDEF" {
 		t.Fatalf("unexpected normalized request: %#v", request)
 	}
-	if strings.Join(*request.PermissionKeys, ",") != "roles.view" {
+	if strings.Join(*request.PermissionKeys, ",") != "audit_logs.view" {
 		t.Fatalf("unexpected permission keys: %v", *request.PermissionKeys)
 	}
 }
@@ -144,11 +144,11 @@ func TestDescribeRoleUpdate(t *testing.T) {
 	}
 	after := &dto.RoleDetailsResponse{
 		RoleResponse:   dto.RoleResponse{Name: "Executive", Color: ptr("#FFFFFF"), DisplayOrder: 1},
-		PermissionKeys: []string{"roles.view", "users.view"},
+		PermissionKeys: []string{"audit_logs.view", "users.view"},
 	}
 
 	got := describeRoleUpdate(before, after)
-	want := `Updated role Executive: name "Exec" → "Executive"; color none → #FFFFFF; permissions users.view → roles.view, users.view`
+	want := `Updated role Executive: name "Exec" → "Executive"; color none → #FFFFFF; permissions users.view → audit_logs.view, users.view`
 	if got != want {
 		t.Fatalf("unexpected description:\n got: %s\nwant: %s", got, want)
 	}
