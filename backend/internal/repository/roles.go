@@ -13,6 +13,22 @@ import (
 	"github.com/ubcesports/memberships/internal/util"
 )
 
+// RoleStore is the set of persistence operations the role service depends on,
+// so the service can be tested without a database.
+type RoleStore interface {
+	GetAll(ctx context.Context) ([]dto.RoleResponse, error)
+	GetByID(ctx context.Context, id string) (*dto.RoleDetailsResponse, error)
+	GetForUser(ctx context.Context, userID string) ([]dto.UserRolePermissions, error)
+	Create(ctx context.Context, request dto.CreateRoleRequest, createdByUserID string) (string, error)
+	Update(ctx context.Context, id string, request dto.UpdateRoleRequest) error
+	Delete(ctx context.Context, id string) error
+	GetAssigneeName(ctx context.Context, userID string) (string, error)
+	AssignUser(ctx context.Context, roleID string, userID string, assignedByUserID string) (bool, error)
+	UnassignUser(ctx context.Context, roleID string, userID string) (bool, error)
+	CreateAuditLog(ctx context.Context, params RoleAuditLogParams) error
+	WithTx(ctx context.Context, fn func(RoleStore) error) error
+}
+
 type RoleRepository struct {
 	pool  *pgxpool.Pool
 	store *db.Queries
@@ -25,6 +41,8 @@ type RoleAuditLogParams struct {
 	RequestID   string
 	Description string
 }
+
+var _ RoleStore = (*RoleRepository)(nil)
 
 func NewRoleRepository(pool *pgxpool.Pool, store *db.Queries) *RoleRepository {
 	return &RoleRepository{pool: pool, store: store}
@@ -337,7 +355,7 @@ func (r *RoleRepository) CreateAuditLog(ctx context.Context, params RoleAuditLog
 }
 
 // WithTx runs role operations, and their audit entries, in one transaction.
-func (r *RoleRepository) WithTx(ctx context.Context, fn func(*RoleRepository) error) error {
+func (r *RoleRepository) WithTx(ctx context.Context, fn func(RoleStore) error) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err

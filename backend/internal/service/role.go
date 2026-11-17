@@ -39,7 +39,7 @@ const (
 var roleColorPattern = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 
 type RoleService struct {
-	repository *repository.RoleRepository
+	repository repository.RoleStore
 }
 
 func NewRoleService(repository *repository.RoleRepository) *RoleService {
@@ -80,7 +80,7 @@ func (s *RoleService) Create(
 	}
 
 	var role *dto.RoleDetailsResponse
-	err = s.repository.WithTx(ctx, func(repo *repository.RoleRepository) error {
+	err = s.repository.WithTx(ctx, func(repo repository.RoleStore) error {
 		roleID, err := repo.Create(ctx, normalized, actorUserID)
 		if err != nil {
 			return err
@@ -128,7 +128,7 @@ func (s *RoleService) Update(
 	}
 
 	var role *dto.RoleDetailsResponse
-	err = s.repository.WithTx(ctx, func(repo *repository.RoleRepository) error {
+	err = s.repository.WithTx(ctx, func(repo repository.RoleStore) error {
 		existing, err := repo.GetByID(ctx, id)
 		if err != nil {
 			return err
@@ -171,7 +171,7 @@ func (s *RoleService) Delete(
 		return s.auditRoleFailure(ctx, actorUserID, actionRoleDeleted, requestID, failureDescription, ErrInvalidRole)
 	}
 
-	err := s.repository.WithTx(ctx, func(repo *repository.RoleRepository) error {
+	err := s.repository.WithTx(ctx, func(repo repository.RoleStore) error {
 		existing, err := repo.GetByID(ctx, id)
 		if err != nil {
 			return err
@@ -219,7 +219,7 @@ func (s *RoleService) AssignUser(
 		return s.auditRoleFailure(ctx, actorUserID, actionRoleAssigned, requestID, failureDescription, ErrInvalidRole)
 	}
 
-	err := s.repository.WithTx(ctx, func(repo *repository.RoleRepository) error {
+	err := s.repository.WithTx(ctx, func(repo repository.RoleStore) error {
 		role, err := repo.GetByID(ctx, roleID)
 		if err != nil {
 			return err
@@ -275,7 +275,7 @@ func (s *RoleService) UnassignUser(
 		return s.auditRoleFailure(ctx, actorUserID, actionRoleUnassigned, requestID, failureDescription, ErrInvalidRole)
 	}
 
-	err := s.repository.WithTx(ctx, func(repo *repository.RoleRepository) error {
+	err := s.repository.WithTx(ctx, func(repo repository.RoleStore) error {
 		role, err := repo.GetByID(ctx, roleID)
 		if err != nil {
 			return err
