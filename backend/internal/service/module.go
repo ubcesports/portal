@@ -21,6 +21,7 @@ var Module = fx.Module("service",
 		NewMembershipInvitationService,
 		NewAnalyticsService,
 		NewLoungeService,
+		NewRoleService,
 
 		provideProfileReader,
 	),
