@@ -1,7 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
--- Permission keys must match the constants in internal/auth/permissions.go;
--- TestPermissionsMatchMigration enforces that. Add new keys in a new migration.
+-- Keep in sync with internal/auth/permissions.go (TestPermissionsMatchMigrationAndSeed).
 INSERT INTO permissions (permission)
 VALUES
     ('users.view'),

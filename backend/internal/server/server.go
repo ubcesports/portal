@@ -92,7 +92,7 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.With(can(auth.PermissionUsersView)).Get("/admin/users", params.AdminHandler.GetUsers)
 		r.With(can(auth.PermissionUsersExport)).Get("/admin/users/export", params.AdminHandler.ExportUsersCSV)
 		r.With(can(auth.PermissionUsersView)).Get("/admin/users/{id}", params.AdminHandler.GetUser)
-		// Role changes and membership cancellations need further checks in the handler.
+		// The handler adds checks for role changes and membership cancellations.
 		r.With(can(auth.PermissionUsersUpdate)).Patch("/admin/users/{id}", params.AdminHandler.UpdateUser)
 
 		// Membership tiers
@@ -128,8 +128,7 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.With(can(auth.PermissionLoungeSessionsCheckout)).Post("/lounge/sessions/{session_id}/check-out", params.LoungeHandler.CheckoutSession)
 
 		// Roles
-		// Managing roles can grant access the caller does not have, so it is
-		// limited to system admins. Members see their own roles on GET /profile.
+		// Admin only, since roles can grant access. Members see theirs on GET /profile.
 		r.With(adminOnly).Get("/admin/roles", params.RoleHandler.GetAll)
 		r.With(adminOnly).Get("/admin/roles/{id}", params.RoleHandler.GetByID)
 		r.With(adminOnly).Post("/admin/roles", params.RoleHandler.Create)

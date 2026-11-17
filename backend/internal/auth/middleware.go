@@ -23,8 +23,7 @@ type RoleChecker interface {
 
 const sessionKey contextKey = "session"
 
-// SystemRoleAdmin is the users.role value that grants full access, including
-// bypassing RequireRole checks.
+// SystemRoleAdmin is the users.role value with full access.
 const SystemRoleAdmin = "admin"
 
 // Requires user to be signed in to access endpoints under this
@@ -51,9 +50,8 @@ func RequireAuth(auth *limen.Limen) func(http.Handler) http.Handler {
 	}
 }
 
-// Requires user to have one of these system roles (the users.role column) to
-// access endpoints under this.
-// eg. r.Use(auth.RequireSystem("admin")) or r.Use(auth.RequireSystem("admin", "member"))
+// Requires user to have one of these system roles (the users.role column).
+// eg. r.Use(auth.RequireSystem("admin"))
 func RequireSystem(roles ...string) func(http.Handler) http.Handler {
 	allowed := make(map[string]bool, len(roles))
 	for _, r := range roles {
@@ -75,11 +73,9 @@ func RequireSystem(roles ...string) func(http.Handler) http.Handler {
 	}
 }
 
-// Requires user to be assigned one of these custom roles (from the roles
-// system) to access endpoints under this. Users with the "admin" system role
-// bypass the check. Use after RequireAuth.
-// eg. r.Use(auth.RequireRole(roleRepository, "Treasurer")) or
-// r.Use(auth.RequireRole(roleRepository, "Treasurer", "President"))
+// Requires user to hold one of these custom roles. Admins bypass the check.
+// Use after RequireAuth.
+// eg. r.Use(auth.RequireRole(roleRepository, "Treasurer", "President"))
 func RequireRole(checker RoleChecker, roles ...string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -158,8 +154,7 @@ func RequireExecGroup(checker ExecGroupChecker) func(http.Handler) http.Handler 
 	}
 }
 
-// hasRequiredRole lets system admins through and otherwise checks whether the
-// user is assigned any of the required custom roles.
+// hasRequiredRole lets admins through, otherwise checks the user's custom roles.
 func hasRequiredRole(
 	ctx context.Context,
 	checker RoleChecker,

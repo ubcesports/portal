@@ -61,8 +61,7 @@ func (s *RoleService) GetByID(ctx context.Context, id string) (*dto.RoleDetailsR
 	return role, err
 }
 
-// GetForUser returns every role assigned to the user along with each role's
-// permission keys.
+// GetForUser returns the user's roles with their permission keys.
 func (s *RoleService) GetForUser(ctx context.Context, userID string) ([]dto.UserRolePermissions, error) {
 	return s.repository.GetForUser(ctx, userID)
 }
@@ -202,8 +201,7 @@ func (s *RoleService) Delete(
 	return nil
 }
 
-// AssignUser gives a user a role. The user must exist and must not already
-// have the role.
+// AssignUser gives a user a role they do not already have.
 func (s *RoleService) AssignUser(
 	ctx context.Context,
 	roleID string,
@@ -259,7 +257,7 @@ func (s *RoleService) AssignUser(
 	return nil
 }
 
-// UnassignUser removes a role from a user who currently has it.
+// UnassignUser removes a role the user currently has.
 func (s *RoleService) UnassignUser(
 	ctx context.Context,
 	roleID string,
@@ -389,8 +387,7 @@ func normalizeRoleName(name string) (string, error) {
 	return name, nil
 }
 
-// normalizeRoleDescription trims the description and treats a blank one as
-// absent so new roles do not store empty strings.
+// normalizeRoleDescription trims the description; blank becomes nil.
 func normalizeRoleDescription(description *string) *string {
 	if description == nil {
 		return nil
@@ -420,9 +417,8 @@ func validateRoleDisplayOrder(displayOrder *int32) error {
 	return nil
 }
 
-// normalizePermissionKeys trims and de-duplicates permission keys while
-// preserving their order. Whether each key exists is enforced by the
-// role_permissions foreign key, which roleError maps to ErrInvalidRolePermission.
+// normalizePermissionKeys trims and de-duplicates keys, keeping order. Unknown
+// keys fail the role_permissions foreign key (see roleError).
 func normalizePermissionKeys(keys []string) ([]string, error) {
 	normalized := make([]string, 0, len(keys))
 	seen := make(map[string]struct{}, len(keys))
@@ -487,7 +483,7 @@ func describeRoleUpdate(before *dto.RoleDetailsResponse, after *dto.RoleDetailsR
 	return fmt.Sprintf("Updated role %s: %s", after.Name, strings.Join(changes, "; "))
 }
 
-// formatPermissionKeys expects keys already sorted, as GetRoleByID returns them.
+// formatPermissionKeys expects sorted keys, as GetRoleByID returns them.
 func formatPermissionKeys(keys []string) string {
 	if len(keys) == 0 {
 		return "none"

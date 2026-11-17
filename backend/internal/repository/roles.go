@@ -65,7 +65,7 @@ func (r *RoleRepository) GetByID(ctx context.Context, id string) (*dto.RoleDetai
 }
 
 // Create inserts a role and its permission keys, returning the new role's ID.
-// Callers should run it inside WithTx so the role and its permissions are atomic.
+// Run it inside WithTx.
 func (r *RoleRepository) Create(ctx context.Context, request dto.CreateRoleRequest, createdByUserID string) (string, error) {
 	creatorID, err := util.GetValidatedUUID(createdByUserID)
 	if err != nil {
@@ -95,9 +95,8 @@ func (r *RoleRepository) Create(ctx context.Context, request dto.CreateRoleReque
 	return roleID.String(), nil
 }
 
-// Update applies the non-nil fields of request to the role. When
-// PermissionKeys is set, the role's permissions are replaced with it. Callers
-// should run it inside WithTx so the role and its permissions are atomic.
+// Update applies the non-nil fields of request. A set PermissionKeys replaces
+// the role's permissions. Run it inside WithTx.
 func (r *RoleRepository) Update(ctx context.Context, id string, request dto.UpdateRoleRequest) error {
 	roleID, err := util.GetValidatedUUID(id)
 	if err != nil {
@@ -176,8 +175,7 @@ func (r *RoleRepository) GetForUser(ctx context.Context, userID string) ([]dto.U
 	return roles, nil
 }
 
-// GetAssigneeName returns the full name of a user who can be assigned a role,
-// or pgx.ErrNoRows when the user does not exist.
+// GetAssigneeName returns the user's full name, or pgx.ErrNoRows.
 func (r *RoleRepository) GetAssigneeName(ctx context.Context, userID string) (string, error) {
 	pgUserID, err := util.GetValidatedUUID(userID)
 	if err != nil {
@@ -191,8 +189,7 @@ func (r *RoleRepository) GetAssigneeName(ctx context.Context, userID string) (st
 	return row.FullName, nil
 }
 
-// AssignUser gives the user the role. It reports false when the user already
-// had it.
+// AssignUser reports false when the user already had the role.
 func (r *RoleRepository) AssignUser(ctx context.Context, roleID string, userID string, assignedByUserID string) (bool, error) {
 	pgRoleID, err := util.GetValidatedUUID(roleID)
 	if err != nil {
@@ -218,8 +215,7 @@ func (r *RoleRepository) AssignUser(ctx context.Context, roleID string, userID s
 	return rowsAffected > 0, nil
 }
 
-// UnassignUser removes the role from the user. It reports false when the user
-// did not have it.
+// UnassignUser reports false when the user did not have the role.
 func (r *RoleRepository) UnassignUser(ctx context.Context, roleID string, userID string) (bool, error) {
 	pgRoleID, err := util.GetValidatedUUID(roleID)
 	if err != nil {
@@ -240,8 +236,7 @@ func (r *RoleRepository) UnassignUser(ctx context.Context, roleID string, userID
 	return rowsAffected > 0, nil
 }
 
-// HasAnyRole reports whether the user is assigned at least one of the named
-// roles. It satisfies auth.RoleChecker.
+// HasAnyRole satisfies auth.RoleChecker.
 func (r *RoleRepository) HasAnyRole(ctx context.Context, userID string, roleNames []string) (bool, error) {
 	pgUserID, err := util.GetValidatedUUID(userID)
 	if err != nil {
@@ -258,8 +253,7 @@ func (r *RoleRepository) HasAnyRole(ctx context.Context, userID string, roleName
 	return hasRole, nil
 }
 
-// GetPermissionsForUser returns every distinct permission key granted to the
-// user through their roles. It satisfies auth.PermissionLoader.
+// GetPermissionsForUser satisfies auth.PermissionLoader.
 func (r *RoleRepository) GetPermissionsForUser(ctx context.Context, userID string) ([]string, error) {
 	pgUserID, err := util.GetValidatedUUID(userID)
 	if err != nil {
@@ -342,8 +336,7 @@ func (r *RoleRepository) CreateAuditLog(ctx context.Context, params RoleAuditLog
 	})
 }
 
-// WithTx executes role operations in one transaction. It is used to keep
-// role mutations, their permissions, and their audit entries atomic.
+// WithTx runs role operations, and their audit entries, in one transaction.
 func (r *RoleRepository) WithTx(ctx context.Context, fn func(*RoleRepository) error) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {

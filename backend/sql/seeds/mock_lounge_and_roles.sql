@@ -1,8 +1,7 @@
 BEGIN;
 
--- Mock members and staff for exercising the lounge check-in flow and the roles
--- system locally. Requires the membership tier seed and the lounge stations seed
--- to have run first, and all migrations to be applied. Safe to re-run.
+-- Mock lounge members and staff for local testing. Run after migrations and the
+-- tier and lounge station seeds. Safe to re-run.
 --
 -- Lounge members (student ID: case)
 --   MOCK2000 Leo Lounge       active `lounge` tier        -> can check in

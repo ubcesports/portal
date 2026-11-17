@@ -5,9 +5,8 @@ import (
 	"net/http"
 )
 
-// Permission keys granted through roles. These must match the rows inserted by
-// sql/migrations/20261117000000_seed_permissions.sql and listed in
-// sql/seeds/permissions.sql; TestPermissionsMatchMigrationAndSeed enforces that.
+// Permission keys granted through roles. Keep in sync with the permissions
+// migration and seed; TestPermissionsMatchMigrationAndSeed enforces it.
 const (
 	PermissionUsersView   = "users.view"
 	PermissionUsersUpdate = "users.update"
@@ -37,7 +36,7 @@ const (
 	PermissionLoungeStationsUpdate   = "lounge_stations.update"
 )
 
-// AllPermissions lists every permission key defined above.
+// AllPermissions lists every permission key.
 var AllPermissions = []string{
 	PermissionUsersView,
 	PermissionUsersUpdate,
@@ -66,8 +65,7 @@ type PermissionLoader interface {
 
 type permissionsKey struct{}
 
-// permissionSet is the caller's effective permissions for one request.
-// System admins hold every permission.
+// permissionSet is the caller's permissions for one request. Admins hold all.
 type permissionSet struct {
 	admin       bool
 	permissions map[string]struct{}
@@ -81,11 +79,9 @@ func (p *permissionSet) has(permission string) bool {
 	return ok
 }
 
-// Requires user to hold this permission, through any of their roles, to access
-// endpoints under this. Users with the "admin" system role bypass the check.
-// The caller's permissions are loaded once per request and cached in the
-// context, so handlers can check further permissions with HasPermission.
-// Use after RequireAuth.
+// Requires user to hold this permission through any of their roles. Admins
+// bypass the check. Permissions are loaded once per request and cached in the
+// context for HasPermission. Use after RequireAuth.
 // eg. r.With(auth.RequirePermission(roleRepository, auth.PermissionUsersView)).Get(...)
 func RequirePermission(loader PermissionLoader, permission string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -103,23 +99,21 @@ func RequirePermission(loader PermissionLoader, permission string) func(http.Han
 	}
 }
 
-// HasPermission reports whether the caller holds the permission. It only
-// sees permissions loaded by RequirePermission earlier in the chain and
-// returns false when none were loaded.
+// HasPermission reports whether the caller holds the permission. It returns
+// false unless RequirePermission ran earlier in the chain.
 func HasPermission(ctx context.Context, permission string) bool {
 	permissions, _ := ctx.Value(permissionsKey{}).(*permissionSet)
 	return permissions != nil && permissions.has(permission)
 }
 
-// IsSystemAdmin reports whether the caller has the "admin" system role.
+// IsSystemAdmin reports whether the caller is a system admin.
 func IsSystemAdmin(ctx context.Context) bool {
 	session := SessionFromContext(ctx)
 	return session != nil && systemRole(session.User) == SystemRoleAdmin
 }
 
-// loadPermissions returns the caller's permissions, reusing ones already
-// cached in the context. It writes an error response and returns ok=false
-// when the caller is unauthenticated or the lookup fails.
+// loadPermissions returns the caller's permissions, reusing the cached set. It
+// writes the error response and returns ok=false on failure.
 func loadPermissions(
 	w http.ResponseWriter,
 	r *http.Request,
@@ -149,8 +143,7 @@ func loadPermissions(
 	return context.WithValue(ctx, permissionsKey{}, permissions), permissions, true
 }
 
-// buildPermissionSet skips the lookup for system admins, who hold every
-// permission.
+// buildPermissionSet skips the lookup for admins.
 func buildPermissionSet(
 	ctx context.Context,
 	loader PermissionLoader,

@@ -395,8 +395,7 @@ func (h *AdminHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// The route requires users.update; some fields need more than that.
-	// Changing a system role can grant admin, so only admins may do it.
+	// Some fields need more than users.update. Only admins may change roles.
 	if updateUserRequest.Role != nil && !auth.IsSystemAdmin(r.Context()) {
 		util.WriteApiResponse(w, http.StatusForbidden, "FORBIDDEN", "Only admins can change a user's role.", requestId)
 		return
