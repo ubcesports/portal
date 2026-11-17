@@ -58,8 +58,6 @@ func provideRouter(params RouterParams) *chi.Mux {
 	r.Post("/webhooks/stripe", params.StripeWebhookHandler.Handle)
 	r.Get("/exec-profiles", params.ExecProfileHandler.GetExecProfiles)
 	r.Get("/lounge/stations", params.LoungeHandler.GetStations)
-	r.Patch("/lounge/stations/{id}", params.LoungeHandler.UpdateStation)
-	r.Post("/lounge/sessions/{session_id}/check-out", params.LoungeHandler.CheckoutSession)
 
 	// All protected routes
 	r.Group(func(r chi.Router) {
@@ -124,6 +122,10 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.With(can(auth.PermissionAnalyticsView)).Get("/admin/analytics/memberships-over-time", params.AnalyticsHandler.GetMembershipsBoughtOverTime)
 		r.With(can(auth.PermissionAnalyticsView)).Get("/admin/analytics/revenue-over-time", params.AnalyticsHandler.GetRevenueOverTime)
 		r.With(can(auth.PermissionAnalyticsExport)).Get("/admin/analytics/export", params.AnalyticsHandler.ExportCSV)
+
+		// Lounge
+		r.With(can(auth.PermissionLoungeStationsUpdate)).Patch("/lounge/stations/{id}", params.LoungeHandler.UpdateStation)
+		r.With(can(auth.PermissionLoungeSessionsCheckout)).Post("/lounge/sessions/{session_id}/check-out", params.LoungeHandler.CheckoutSession)
 
 		// Roles
 		// Managing roles can grant access the caller does not have, so it is

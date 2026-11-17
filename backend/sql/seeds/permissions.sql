@@ -14,5 +14,9 @@ VALUES
     ('audit_logs.view'),
     ('audit_logs.export'),
     ('analytics.view'),
-    ('analytics.export')
+    ('analytics.export'),
+    ('lounge_sessions.create'),
+    ('lounge_sessions.checkout'),
+    ('lounge_sessions.view'),
+    ('lounge_stations.update')
 ON CONFLICT (permission) DO NOTHING;

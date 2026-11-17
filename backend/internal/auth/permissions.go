@@ -30,6 +30,11 @@ const (
 
 	PermissionAnalyticsView   = "analytics.view"
 	PermissionAnalyticsExport = "analytics.export"
+
+	PermissionLoungeSessionsCreate   = "lounge_sessions.create"
+	PermissionLoungeSessionsCheckout = "lounge_sessions.checkout"
+	PermissionLoungeSessionsView     = "lounge_sessions.view"
+	PermissionLoungeStationsUpdate   = "lounge_stations.update"
 )
 
 // AllPermissions lists every permission key defined above.
@@ -49,6 +54,10 @@ var AllPermissions = []string{
 	PermissionAuditLogsExport,
 	PermissionAnalyticsView,
 	PermissionAnalyticsExport,
+	PermissionLoungeSessionsCreate,
+	PermissionLoungeSessionsCheckout,
+	PermissionLoungeSessionsView,
+	PermissionLoungeStationsUpdate,
 }
 
 type PermissionLoader interface {
