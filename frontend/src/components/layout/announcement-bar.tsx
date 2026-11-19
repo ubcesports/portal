@@ -2,7 +2,9 @@ import { ArrowUpRight, TicketPercent } from "lucide-react";
 import { announcement } from "@/lib/announcement";
 
 export function AnnouncementBar() {
-  if (!announcement.enabled) {
+  const isExpired = announcement.expiresAt && new Date() >= new Date(announcement.expiresAt);
+
+  if (!announcement.enabled || isExpired) {
     return null;
   }
 
