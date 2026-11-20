@@ -6,6 +6,7 @@ import {
   Logs,
   LogOut,
   Menu,
+  ShieldCheck,
   TicketCheck,
   UserRound,
   UsersRound,
@@ -43,7 +44,7 @@ function DropdownLink({
   );
 }
 
-/** Renders the expandable admin links for users, audit logs, and analytics. */
+/** Renders the expandable admin links for users, audit logs, invitations, roles and analytics. */
 function AdminMenuLinks() {
   return (
     <div className="border-t border-brand-border p-1.5">
@@ -74,6 +75,12 @@ function AdminMenuLinks() {
             icon={<TicketCheck aria-hidden="true" className="size-4" />}
           >
             Membership Invitations
+          </DropdownLink>
+          <DropdownLink
+            href="/admin/roles"
+            icon={<ShieldCheck aria-hidden="true" className="size-4" />}
+          >
+            Roles
           </DropdownLink>
           <DropdownLink
             href="/admin/analytics"
