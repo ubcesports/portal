@@ -1,6 +1,15 @@
 "use client";
 
-import { ChevronDown, Logs, LogOut, Menu, TicketCheck, UserRound, UsersRound } from "lucide-react";
+import {
+  BarChart3,
+  ChevronDown,
+  Logs,
+  LogOut,
+  Menu,
+  TicketCheck,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -34,6 +43,7 @@ function DropdownLink({
   );
 }
 
+/** Renders the expandable admin links for users, audit logs, and analytics. */
 function AdminMenuLinks() {
   return (
     <div className="border-t border-brand-border p-1.5">
@@ -64,6 +74,12 @@ function AdminMenuLinks() {
             icon={<TicketCheck aria-hidden="true" className="size-4" />}
           >
             Membership Invitations
+          </DropdownLink>
+          <DropdownLink
+            href="/admin/analytics"
+            icon={<BarChart3 aria-hidden="true" className="size-4" />}
+          >
+            Analytics
           </DropdownLink>
         </div>
       </details>

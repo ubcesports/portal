@@ -33,11 +33,14 @@ type RouterParams struct {
 	MembershipHandler           *handlers.MembershipHandler
 	MembershipInvitationHandler *handlers.MembershipInvitationHandler
 	StripeWebhookHandler        *handlers.StripeWebhookHandler
+	AnalyticsHandler            *handlers.AnalyticsHandler
+	LoungeHandler               *handlers.LoungeHandler
 	AdminRepository             *repository.AdminRepository
 	Limen                       *limen.Limen
 }
 
-// Add all new routes here
+// provideRouter builds the HTTP router with shared middleware and public,
+// authenticated, onboarded, and admin-only route groups.
 func provideRouter(params RouterParams) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -52,6 +55,9 @@ func provideRouter(params RouterParams) *chi.Mux {
 	r.Get("/membership/tiers", params.MembershipHandler.GetPublicTiersWithPrices)
 	r.Post("/webhooks/stripe", params.StripeWebhookHandler.Handle)
 	r.Get("/exec-profiles", params.ExecProfileHandler.GetExecProfiles)
+	r.Get("/lounge/stations", params.LoungeHandler.GetStations)
+	r.Patch("/lounge/stations/{id}", params.LoungeHandler.UpdateStation)
+	r.Post("/lounge/sessions/{session_id}/check-out", params.LoungeHandler.CheckoutSession)
 
 	// All protected routes
 	r.Group(func(r chi.Router) {
@@ -96,6 +102,11 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.Get("/admin/membership-invitations", params.MembershipInvitationHandler.GetAll)
 		r.Get("/admin/membership-invitations/{id}", params.MembershipInvitationHandler.GetByID)
 		r.Delete("/admin/membership-invitations/{id}", params.MembershipInvitationHandler.Delete)
+
+		r.Get("/admin/analytics/summary", params.AnalyticsHandler.GetSummary)
+		r.Get("/admin/analytics/memberships-over-time", params.AnalyticsHandler.GetMembershipsBoughtOverTime)
+		r.Get("/admin/analytics/revenue-over-time", params.AnalyticsHandler.GetRevenueOverTime)
+		r.Get("/admin/analytics/export", params.AnalyticsHandler.ExportCSV)
 	})
 
 	// All exec profile routes

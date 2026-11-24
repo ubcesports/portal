@@ -12,14 +12,20 @@ type CheckboxFilterProps<T extends string> = {
   selectedValues: T[];
   onChange: (values: T[]) => void;
   allLabel?: string;
+  helpText?: string;
 };
 
+/**
+ * Renders a controlled checkbox filter with optional help text.
+ * An empty selection represents all options.
+ */
 export function CheckboxFilter<T extends string>({
   label,
   options,
   selectedValues,
   onChange,
   allLabel = "All",
+  helpText = "Selected values must match the user's complete set.",
 }: CheckboxFilterProps<T>) {
   const isAllSelected = selectedValues.length === 0;
 
@@ -80,9 +86,7 @@ export function CheckboxFilter<T extends string>({
           );
         })}
       </div>
-      <p className="mt-1.5 text-xs text-brand-text-subtle">
-        Selected values must match the user&apos;s complete set.
-      </p>
+      <p className="mt-1.5 text-xs text-brand-text-subtle">{helpText}</p>
     </fieldset>
   );
 }
