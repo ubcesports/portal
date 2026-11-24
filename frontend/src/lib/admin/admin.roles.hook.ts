@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   assignRoleToUser,
   createRole,
@@ -28,6 +28,21 @@ export function useRole(roleId: string, options?: { enabled?: boolean }) {
     enabled: options?.enabled !== false && !!roleId,
     // A 404 for an unknown role is a final answer, not a transient failure.
     retry: false,
+  });
+}
+
+/*
+  Loads every role's details, which include the users holding it. There is no
+  endpoint for one user's roles, so this is how the user page finds them.
+*/
+export function useAllRoleDetails(roleIds: string[], options?: { enabled?: boolean }) {
+  return useQueries({
+    queries: roleIds.map((roleId) => ({
+      queryKey: roleKey(roleId),
+      queryFn: ({ signal }: { signal: AbortSignal }) => fetchRole(roleId, signal),
+      enabled: options?.enabled ?? true,
+      retry: false,
+    })),
   });
 }
 
@@ -76,12 +91,18 @@ export function useDeleteRole() {
   });
 }
 
-export function useAssignRole(roleId: string) {
+export type RoleAssignment = {
+  roleId: string;
+  userId: string;
+};
+
+export function useAssignRole() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (userId: string) => assignRoleToUser(roleId, { user_id: userId }),
-    onSuccess: async () => {
+    mutationFn: ({ roleId, userId }: RoleAssignment) =>
+      assignRoleToUser(roleId, { user_id: userId }),
+    onSuccess: async (_data, { roleId }) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: roleKey(roleId) }),
         queryClient.invalidateQueries({ queryKey: ["auth"] }),
@@ -90,12 +111,12 @@ export function useAssignRole(roleId: string) {
   });
 }
 
-export function useUnassignRole(roleId: string) {
+export function useUnassignRole() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (userId: string) => unassignRoleFromUser(roleId, userId),
-    onSuccess: async () => {
+    mutationFn: ({ roleId, userId }: RoleAssignment) => unassignRoleFromUser(roleId, userId),
+    onSuccess: async (_data, { roleId }) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: roleKey(roleId) }),
         queryClient.invalidateQueries({ queryKey: ["auth"] }),

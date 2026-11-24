@@ -12,7 +12,6 @@ export type Role = {
   name: string;
   description: string | null;
   color: string | null;
-  display_order: number;
   created_by: RoleUser | null;
   created_at: string;
   updated_at: string;
@@ -35,7 +34,6 @@ export type CreateRoleRequest = {
   name: string;
   description?: string;
   color?: string;
-  display_order?: number;
   permission_keys: PermissionKey[];
 };
 

@@ -7,3 +7,6 @@
 
 # nix
 shell.nix
+
+# local test scripts
+scripts/test-role-permissions.sh

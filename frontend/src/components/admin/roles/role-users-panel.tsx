@@ -45,7 +45,7 @@ type RoleUserSearchProps = {
 function RoleUserSearch({ role }: RoleUserSearchProps) {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search.trim(), 300);
-  const assignRole = useAssignRole(role.id);
+  const assignRole = useAssignRole();
   const canSearch = debouncedSearch.length >= MIN_SEARCH_LENGTH;
 
   const usersQuery = useUsers(
@@ -60,7 +60,7 @@ function RoleUserSearch({ role }: RoleUserSearchProps) {
 
   const handleAssign = async (userId: string, name: string) => {
     try {
-      await assignRole.mutateAsync(userId);
+      await assignRole.mutateAsync({ roleId: role.id, userId });
       toast.success(`Gave ${role.name} to ${name}`);
     } catch {
       // The shared API client displays the server error.
@@ -99,7 +99,8 @@ function RoleUserSearch({ role }: RoleUserSearchProps) {
             <ul className={usersQuery.isFetching ? "opacity-70 transition-opacity" : undefined}>
               {results.map((user) => {
                 const isAssigned = assignedIDs.has(user.id);
-                const isAssigning = assignRole.isPending && assignRole.variables === user.id;
+                const isAssigning =
+                  assignRole.isPending && assignRole.variables?.userId === user.id;
 
                 return (
                   <li
@@ -144,12 +145,12 @@ type RoleUsersPanelProps = {
 
 export function RoleUsersPanel({ role }: RoleUsersPanelProps) {
   const [confirmingID, setConfirmingID] = useState<string | null>(null);
-  const unassignRole = useUnassignRole(role.id);
+  const unassignRole = useUnassignRole();
   const users = role.users_with_role;
 
   const handleUnassign = async (userId: string, name: string) => {
     try {
-      await unassignRole.mutateAsync(userId);
+      await unassignRole.mutateAsync({ roleId: role.id, userId });
       setConfirmingID(null);
       toast.success(`Removed ${role.name} from ${name}`);
     } catch {
@@ -177,7 +178,8 @@ export function RoleUsersPanel({ role }: RoleUsersPanelProps) {
         <ul>
           {users.map((user) => {
             const isConfirming = confirmingID === user.user_id;
-            const isRemoving = unassignRole.isPending && unassignRole.variables === user.user_id;
+            const isRemoving =
+              unassignRole.isPending && unassignRole.variables?.userId === user.user_id;
 
             return (
               <li

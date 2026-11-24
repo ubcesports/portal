@@ -12,6 +12,8 @@ type RolesTableProps = {
   roles: Role[];
   isLoading: boolean;
   isFetching: boolean;
+  /* Overrides the message shown when there are no rows. */
+  emptyLabel?: string;
 };
 
 const COLUMNS: Column<Role>[] = [
@@ -28,11 +30,6 @@ const COLUMNS: Column<Role>[] = [
     header: "Description",
     cellClassName: "max-w-md truncate px-4 py-3 text-brand-text-muted",
     cell: (role) => role.description || <EmptyValue />,
-  },
-  {
-    header: "Order",
-    cellClassName: "whitespace-nowrap px-4 py-3 font-mono text-brand-text",
-    cell: (role) => role.display_order,
   },
   {
     header: "Created",
@@ -52,7 +49,7 @@ const COLUMNS: Column<Role>[] = [
   },
 ];
 
-export function RolesTable({ roles, isLoading, isFetching }: RolesTableProps) {
+export function RolesTable({ roles, isLoading, isFetching, emptyLabel }: RolesTableProps) {
   const router = useRouter();
 
   return (
@@ -63,7 +60,7 @@ export function RolesTable({ roles, isLoading, isFetching }: RolesTableProps) {
       isLoading={isLoading}
       isFetching={isFetching}
       loadingLabel="Loading roles"
-      emptyLabel="No roles yet. Create one to grant admin permissions to members."
+      emptyLabel={emptyLabel ?? "No roles yet. Create one to grant admin permissions to members."}
       onRowClick={(role) => router.push(`/admin/roles/${role.id}`)}
     />
   );

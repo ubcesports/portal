@@ -18,7 +18,7 @@ export default function NewRolePage() {
   const handleCreate = async (body: CreateRoleRequest) => {
     const role = await createRole.mutateAsync(body);
     toast.success(`Created ${role.name}`);
-    router.push(`/admin/roles/${role.id}`);
+    router.push("/admin/roles");
   };
 
   return (
@@ -41,7 +41,7 @@ export default function NewRolePage() {
           ) : isAdmin ? (
             <RoleForm
               title="New role"
-              description="Name the role and choose what it lets members do. You can add users after it is created."
+              description="Name the role and choose what it lets members do. Open it from the roles list afterwards to add users."
               submitLabel={createRole.isPending ? "Creating" : "Create role"}
               isSubmitting={createRole.isPending}
               onSubmit={handleCreate}

@@ -20,15 +20,12 @@ const FIELD_CLASS_NAME =
 
 const DEFAULT_COLOR = "#5865F2";
 const COLOR_PATTERN = /^#[0-9A-Fa-f]{6}$/;
-// display_order is an int32 in the API.
-const MAX_DISPLAY_ORDER = 2_147_483_647;
 
 type Draft = {
   name: string;
   description: string;
   hasColor: boolean;
   color: string;
-  displayOrder: string;
   permissionKeys: Set<PermissionKey>;
 };
 
@@ -38,7 +35,6 @@ function toDraft(role?: RoleDetails): Draft {
     description: role?.description ?? "",
     hasColor: !!role?.color,
     color: role?.color ?? DEFAULT_COLOR,
-    displayOrder: String(role?.display_order ?? 0),
     permissionKeys: new Set(role?.permission_keys ?? []),
   };
 }
@@ -60,22 +56,12 @@ function validate(draft: Draft): string | null {
   if (draft.hasColor && !COLOR_PATTERN.test(draft.color)) {
     return "Enter a color like #5865F2";
   }
-  const displayOrder = Number(draft.displayOrder);
-  if (
-    draft.displayOrder.trim() === "" ||
-    !Number.isInteger(displayOrder) ||
-    displayOrder < 0 ||
-    displayOrder > MAX_DISPLAY_ORDER
-  ) {
-    return "Display order must be a whole number from 0 to 2147483647";
-  }
   return null;
 }
 
 function buildCreateBody(draft: Draft): CreateRoleRequest {
   const body: CreateRoleRequest = {
     name: draft.name.trim(),
-    display_order: Number(draft.displayOrder),
     permission_keys: [...draft.permissionKeys],
   };
   const description = draft.description.trim();
@@ -102,10 +88,6 @@ function buildUpdateBody(role: RoleDetails, draft: Draft): UpdateRoleRequest {
   const color = draft.color.toUpperCase();
   if (draft.hasColor && color !== role.color?.toUpperCase()) {
     body.color = color;
-  }
-  const displayOrder = Number(draft.displayOrder);
-  if (displayOrder !== role.display_order) {
-    body.display_order = displayOrder;
   }
   if (!sameKeys(draft.permissionKeys, role.permission_keys)) {
     body.permission_keys = [...draft.permissionKeys];
@@ -186,56 +168,40 @@ export function RoleForm(props: RoleFormProps) {
               />
             </label>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5 text-sm text-brand-text-subtle">
-                <label htmlFor={`${formID}-color`}>Color</label>
-                <div className="flex h-11 items-center gap-2">
-                  <input
-                    id={`${formID}-color`}
-                    type="color"
-                    value={draft.color}
-                    // Picking the color already shown fires no change event.
-                    onClick={() => update("hasColor", true)}
-                    onChange={(event) => {
-                      update("color", event.target.value);
-                      update("hasColor", true);
-                    }}
-                    className={`h-11 w-14 shrink-0 cursor-pointer border border-brand-border bg-brand-surface p-1 ${
-                      draft.hasColor ? "" : "opacity-40"
-                    }`}
-                  />
-                  {draft.hasColor ? (
-                    <span className="font-mono text-xs text-brand-text">
-                      {draft.color.toUpperCase()}
-                    </span>
-                  ) : (
-                    <span className="text-xs text-brand-text-subtle">No color</span>
-                  )}
-                  {canRemoveColor && draft.hasColor ? (
-                    <button
-                      type="button"
-                      onClick={() => update("hasColor", false)}
-                      className="ml-auto cursor-pointer text-xs text-brand-text-subtle underline-offset-2 hover:text-brand-text hover:underline"
-                    >
-                      Remove
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-
-              <label className="flex flex-col gap-1.5 text-sm text-brand-text-subtle">
-                <span>Display order</span>
+            <div className="flex flex-col gap-1.5 text-sm text-brand-text-subtle">
+              <label htmlFor={`${formID}-color`}>Color</label>
+              <div className="flex h-11 items-center gap-2">
                 <input
-                  id={`${formID}-order`}
-                  type="number"
-                  inputMode="numeric"
-                  min="0"
-                  step="1"
-                  value={draft.displayOrder}
-                  onChange={(event) => update("displayOrder", event.target.value)}
-                  className={FIELD_CLASS_NAME}
+                  id={`${formID}-color`}
+                  type="color"
+                  value={draft.color}
+                  // Picking the color already shown fires no change event.
+                  onClick={() => update("hasColor", true)}
+                  onChange={(event) => {
+                    update("color", event.target.value);
+                    update("hasColor", true);
+                  }}
+                  className={`h-11 w-14 shrink-0 cursor-pointer border border-brand-border bg-brand-surface p-1 ${
+                    draft.hasColor ? "" : "opacity-40"
+                  }`}
                 />
-              </label>
+                {draft.hasColor ? (
+                  <span className="font-mono text-xs text-brand-text">
+                    {draft.color.toUpperCase()}
+                  </span>
+                ) : (
+                  <span className="text-xs text-brand-text-subtle">No color</span>
+                )}
+                {canRemoveColor && draft.hasColor ? (
+                  <button
+                    type="button"
+                    onClick={() => update("hasColor", false)}
+                    className="ml-auto cursor-pointer text-xs text-brand-text-subtle underline-offset-2 hover:text-brand-text hover:underline"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
             </div>
 
             <label className="flex flex-col gap-1.5 text-sm text-brand-text-subtle md:col-span-2">
