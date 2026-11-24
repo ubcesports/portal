@@ -131,7 +131,7 @@ func NewAdminService(adminRepository *repository.AdminRepository) *AdminService 
 	return &AdminService{adminRepository: adminRepository}
 }
 
-func (s *AdminService) GetUsers(ctx context.Context, filters AdminUserFilters) ([]dto.AdminUserDTO, int64, error) {
+func (s *AdminService) GetUsers(ctx context.Context, filters AdminUserFilters) ([]dto.AdminUserListItemDTO, int64, error) {
 	if filters.Limit <= 0 {
 		filters.Limit = 25
 	}
@@ -172,7 +172,7 @@ func (s *AdminService) ExportUsers(
 	filters AdminUserFilters,
 	actorId string,
 	requestId string,
-) ([]dto.AdminUserDTO, error) {
+) ([]dto.AdminUserListItemDTO, error) {
 	users, exportErr := s.getUsers(ctx, buildAdminQueryParams(filters))
 
 	outcome := db.AdminAuditOutcomeTypeSuccess
@@ -226,7 +226,7 @@ func (s *AdminService) GetAdminMembershipTierOptions(
 }
 
 // GetUserByID returns a single user's profile for the admin detail view.
-func (s *AdminService) GetUserByID(ctx context.Context, userId string) (*dto.AdminUserProfileDTO, error) {
+func (s *AdminService) GetUserByID(ctx context.Context, userId string) (*dto.AdminUserDetailDTO, error) {
 	row, err := s.adminRepository.GetUserByID(ctx, userId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -383,8 +383,8 @@ func (s *AdminService) UpdateUser(
 	targetUserId string,
 	requestId string,
 	req UpdateUserRequest,
-) (*dto.AdminUserProfileDTO, error) {
-	var profile *dto.AdminUserProfileDTO
+) (*dto.AdminUserDetailDTO, error) {
+	var profile *dto.AdminUserDetailDTO
 	var pendingEmails []pendingUserEmail
 	var targetEmail string
 
@@ -682,7 +682,7 @@ func (s *AdminService) applyAdminNoteUpdate(ctx context.Context, store repositor
 	}
 	return []pendingAuditLog{{
 		action:      actionAdminNoteUpdated,
-		description: "Updated admin note",
+		description: fmt.Sprintf("Updated admin note from %q to %q", user.AdminNote.String, note),
 	}}, nil
 }
 
@@ -1129,13 +1129,13 @@ func displayValue(value string) string {
 	return value
 }
 
-func buildAdminUserProfile(row db.GetAdminUserByIDRow) dto.AdminUserProfileDTO {
+func buildAdminUserProfile(row db.GetAdminUserByIDRow) dto.AdminUserDetailDTO {
 	groups := make([]dto.GroupType, 0, len(row.Groups))
 	for _, group := range row.Groups {
 		groups = append(groups, dto.GroupType(group))
 	}
 
-	return dto.AdminUserProfileDTO{
+	return dto.AdminUserDetailDTO{
 		ProfileDTO: dto.ProfileDTO{
 			ID:                    row.ID.String(),
 			Email:                 row.Email,
@@ -1263,13 +1263,13 @@ func normalizedStrings(values []string) []string {
 	return result
 }
 
-func (s *AdminService) getUsers(ctx context.Context, params db.GetUsersAdminParams) ([]dto.AdminUserDTO, error) {
+func (s *AdminService) getUsers(ctx context.Context, params db.GetUsersAdminParams) ([]dto.AdminUserListItemDTO, error) {
 	rows, err := s.adminRepository.GetUsers(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 
-	users := make([]dto.AdminUserDTO, 0, len(rows))
+	users := make([]dto.AdminUserListItemDTO, 0, len(rows))
 	for _, row := range rows {
 		groups := make([]dto.GroupType, 0, len(row.Groups))
 		for _, group := range row.Groups {
@@ -1283,7 +1283,7 @@ func (s *AdminService) getUsers(ctx context.Context, params db.GetUsersAdminPara
 			})
 		}
 
-		users = append(users, dto.AdminUserDTO{ProfileDTO: dto.ProfileDTO{
+		users = append(users, dto.AdminUserListItemDTO{ProfileDTO: dto.ProfileDTO{
 			ID:                    row.ID.String(),
 			Email:                 row.Email,
 			StudentID:             util.TextPointer(row.StudentID),

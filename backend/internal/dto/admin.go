@@ -2,12 +2,12 @@ package dto
 
 import "time"
 
-type AdminUserDTO struct {
+type AdminUserListItemDTO struct {
 	ProfileDTO
 	ActiveMemberships []AdminActiveMembershipSummary `json:"active_memberships"`
 }
 
-type AdminUserProfileDTO struct {
+type AdminUserDetailDTO struct {
 	ProfileDTO
 	AdminNote *string `json:"admin_note"`
 }
