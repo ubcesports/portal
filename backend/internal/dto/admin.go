@@ -2,9 +2,14 @@ package dto
 
 import "time"
 
-type AdminUserDTO struct {
+type AdminUserListItemDTO struct {
 	ProfileDTO
 	ActiveMemberships []AdminActiveMembershipSummary `json:"active_memberships"`
+}
+
+type AdminUserDetailDTO struct {
+	ProfileDTO
+	AdminNote *string `json:"admin_note"`
 }
 
 type AdminActiveMembershipSummary struct {
@@ -37,6 +42,7 @@ type AdminUpdateUserRequest struct {
 	GroupsRemove       []GroupType `json:"groups_remove"`
 	Role               *RoleType   `json:"role"`
 	CancelMembershipId *string     `json:"cancel_membership_id"`
+	AdminNote          *string     `json:"admin_note"`
 }
 
 type AdminUpdateExecProfileRequest struct {

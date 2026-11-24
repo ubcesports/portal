@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5"
@@ -67,6 +68,7 @@ type UpdateUserRequest struct {
 	GroupsRemove       []db.GroupType
 	Role               *db.RoleType
 	CancelMembershipId *string
+	AdminNote          *string
 }
 
 // Audit log actions emitted by UpdateUser.
@@ -76,6 +78,7 @@ const (
 	actionStudentIDUpdated     = "user.student_id.updated"
 	actionStudentStatusUpdated = "user.student_status.updated"
 	actionRoleUpdated          = "user.role.updated"
+	actionAdminNoteUpdated     = "user.admin_note.updated"
 	actionGroupAdded           = "user.group.added"
 	actionGroupRemoved         = "user.group.removed"
 	actionMembershipCancelled  = "user.membership.cancelled"
@@ -128,7 +131,7 @@ func NewAdminService(adminRepository *repository.AdminRepository) *AdminService 
 	return &AdminService{adminRepository: adminRepository}
 }
 
-func (s *AdminService) GetUsers(ctx context.Context, filters AdminUserFilters) ([]dto.AdminUserDTO, int64, error) {
+func (s *AdminService) GetUsers(ctx context.Context, filters AdminUserFilters) ([]dto.AdminUserListItemDTO, int64, error) {
 	if filters.Limit <= 0 {
 		filters.Limit = 25
 	}
@@ -169,7 +172,7 @@ func (s *AdminService) ExportUsers(
 	filters AdminUserFilters,
 	actorId string,
 	requestId string,
-) ([]dto.AdminUserDTO, error) {
+) ([]dto.AdminUserListItemDTO, error) {
 	users, exportErr := s.getUsers(ctx, buildAdminQueryParams(filters))
 
 	outcome := db.AdminAuditOutcomeTypeSuccess
@@ -223,7 +226,7 @@ func (s *AdminService) GetAdminMembershipTierOptions(
 }
 
 // GetUserByID returns a single user's profile for the admin detail view.
-func (s *AdminService) GetUserByID(ctx context.Context, userId string) (*dto.ProfileDTO, error) {
+func (s *AdminService) GetUserByID(ctx context.Context, userId string) (*dto.AdminUserDetailDTO, error) {
 	row, err := s.adminRepository.GetUserByID(ctx, userId)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -380,8 +383,8 @@ func (s *AdminService) UpdateUser(
 	targetUserId string,
 	requestId string,
 	req UpdateUserRequest,
-) (*dto.ProfileDTO, error) {
-	var profile *dto.ProfileDTO
+) (*dto.AdminUserDetailDTO, error) {
+	var profile *dto.AdminUserDetailDTO
 	var pendingEmails []pendingUserEmail
 	var targetEmail string
 
@@ -605,6 +608,12 @@ func (s *AdminService) applyUserUpdates(
 	}
 	entries = append(entries, nameEntries...)
 
+	noteEntries, err := s.applyAdminNoteUpdate(ctx, store, user, req)
+	if err != nil {
+		return nil, err
+	}
+	entries = append(entries, noteEntries...)
+
 	studentEntries, err := s.applyStudentUpdate(ctx, store, user, req)
 	if err != nil {
 		return nil, err
@@ -650,6 +659,30 @@ func (s *AdminService) applyFullNameUpdate(ctx context.Context, store repository
 		action:      actionFullNameUpdated,
 		description: fmt.Sprintf("Updated full name from %q to %q", user.FullName, fullName),
 		email:       userInfoUpdateEmail("Full name", user.FullName, fullName),
+	}}, nil
+}
+
+func (s *AdminService) applyAdminNoteUpdate(ctx context.Context, store repository.AdminStore, user db.GetAdminUserByIDRow, req UpdateUserRequest) ([]pendingAuditLog, error) {
+	if req.AdminNote == nil {
+		return nil, nil
+	}
+	note := *req.AdminNote
+	if strings.TrimSpace(note) == "" {
+		note = ""
+	}
+	if utf8.RuneCountInString(note) > 200 {
+		err := fmt.Errorf("%w: admin note must be 200 characters or fewer", ErrValidation)
+		return nil, auditable(actionAdminNoteUpdated, "Failed to update admin note: note exceeds 200 characters", err)
+	}
+	if user.AdminNote.Valid && note == user.AdminNote.String {
+		return nil, nil
+	}
+	if err := store.UpdateUserAdminNote(ctx, user.ID.String(), note); err != nil {
+		return nil, auditable(actionAdminNoteUpdated, "Failed to update admin note", err)
+	}
+	return []pendingAuditLog{{
+		action:      actionAdminNoteUpdated,
+		description: fmt.Sprintf("Updated admin note from %q to %q", user.AdminNote.String, note),
 	}}, nil
 }
 
@@ -1096,25 +1129,28 @@ func displayValue(value string) string {
 	return value
 }
 
-func buildAdminUserProfile(row db.GetAdminUserByIDRow) dto.ProfileDTO {
+func buildAdminUserProfile(row db.GetAdminUserByIDRow) dto.AdminUserDetailDTO {
 	groups := make([]dto.GroupType, 0, len(row.Groups))
 	for _, group := range row.Groups {
 		groups = append(groups, dto.GroupType(group))
 	}
 
-	return dto.ProfileDTO{
-		ID:                    row.ID.String(),
-		Email:                 row.Email,
-		StudentID:             util.TextPointer(row.StudentID),
-		Role:                  dto.RoleType(row.Role),
-		CreatedAt:             row.CreatedAt.Time,
-		UpdatedAt:             row.UpdatedAt.Time,
-		FullName:              row.FullName,
-		EmailVerifiedAt:       util.TimestampPointer(row.EmailVerifiedAt),
-		IsStudent:             row.IsStudent,
-		OnboardingCompletedAt: util.TimestampPointer(row.OnboardingCompletedAt),
-		AvatarURL:             util.TextPointer(row.AvatarUrl),
-		Groups:                groups,
+	return dto.AdminUserDetailDTO{
+		ProfileDTO: dto.ProfileDTO{
+			ID:                    row.ID.String(),
+			Email:                 row.Email,
+			StudentID:             util.TextPointer(row.StudentID),
+			Role:                  dto.RoleType(row.Role),
+			CreatedAt:             row.CreatedAt.Time,
+			UpdatedAt:             row.UpdatedAt.Time,
+			FullName:              row.FullName,
+			EmailVerifiedAt:       util.TimestampPointer(row.EmailVerifiedAt),
+			IsStudent:             row.IsStudent,
+			OnboardingCompletedAt: util.TimestampPointer(row.OnboardingCompletedAt),
+			AvatarURL:             util.TextPointer(row.AvatarUrl),
+			Groups:                groups,
+		},
+		AdminNote: util.TextPointer(row.AdminNote),
 	}
 }
 
@@ -1227,13 +1263,13 @@ func normalizedStrings(values []string) []string {
 	return result
 }
 
-func (s *AdminService) getUsers(ctx context.Context, params db.GetUsersAdminParams) ([]dto.AdminUserDTO, error) {
+func (s *AdminService) getUsers(ctx context.Context, params db.GetUsersAdminParams) ([]dto.AdminUserListItemDTO, error) {
 	rows, err := s.adminRepository.GetUsers(ctx, params)
 	if err != nil {
 		return nil, err
 	}
 
-	users := make([]dto.AdminUserDTO, 0, len(rows))
+	users := make([]dto.AdminUserListItemDTO, 0, len(rows))
 	for _, row := range rows {
 		groups := make([]dto.GroupType, 0, len(row.Groups))
 		for _, group := range row.Groups {
@@ -1247,7 +1283,7 @@ func (s *AdminService) getUsers(ctx context.Context, params db.GetUsersAdminPara
 			})
 		}
 
-		users = append(users, dto.AdminUserDTO{ProfileDTO: dto.ProfileDTO{
+		users = append(users, dto.AdminUserListItemDTO{ProfileDTO: dto.ProfileDTO{
 			ID:                    row.ID.String(),
 			Email:                 row.Email,
 			StudentID:             util.TextPointer(row.StudentID),

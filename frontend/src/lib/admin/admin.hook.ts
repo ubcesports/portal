@@ -16,6 +16,7 @@ import {
 } from "./admin.api";
 import type {
   AddOfflineMembershipRequest,
+  AdminUserProfile,
   AdminUserFilters,
   AdminPagination,
   AppliedSearch,
@@ -23,7 +24,6 @@ import type {
   UpdateAdminExecProfileRequest,
   CreateMembershipInvitationRequest,
 } from "@/lib/types/admin.types";
-import type { User } from "@/lib/types/user.types";
 
 export function useUsers(
   appliedSearch: AppliedSearch,
@@ -133,7 +133,7 @@ export function useUpdateUser(userId: string) {
 
   return useMutation({
     mutationFn: (body: UpdateUserRequest) => updateUser(userId, body),
-    onSuccess: (user: User, body: UpdateUserRequest) => {
+    onSuccess: (user: AdminUserProfile, body: UpdateUserRequest) => {
       // The response carries the full updated profile, so the detail view can
       // refresh without a second round trip.
       queryClient.setQueryData(["admin", "user", userId], user);

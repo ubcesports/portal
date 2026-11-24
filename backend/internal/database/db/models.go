@@ -609,6 +609,7 @@ type User struct {
 	IsStudent             bool
 	OnboardingCompletedAt pgtype.Timestamptz
 	AvatarUrl             pgtype.Text
+	AdminNote             pgtype.Text
 }
 
 type UserGroup struct {

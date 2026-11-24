@@ -337,6 +337,7 @@ SELECT
     u.is_student,
     u.onboarding_completed_at,
     u.avatar_url,
+    u.admin_note,
     COALESCE(g.groups, '{}'::text[])::text[] AS groups
 FROM users u
 LEFT JOIN LATERAL (
@@ -362,6 +363,7 @@ type GetAdminUserByIDRow struct {
 	IsStudent             bool
 	OnboardingCompletedAt pgtype.Timestamptz
 	AvatarUrl             pgtype.Text
+	AdminNote             pgtype.Text
 	Groups                []string
 }
 
@@ -380,6 +382,7 @@ func (q *Queries) GetAdminUserByID(ctx context.Context, id pgtype.UUID) (GetAdmi
 		&i.IsStudent,
 		&i.OnboardingCompletedAt,
 		&i.AvatarUrl,
+		&i.AdminNote,
 		&i.Groups,
 	)
 	return i, err
@@ -690,6 +693,22 @@ func (q *Queries) UpdateExecProfile(ctx context.Context, arg UpdateExecProfilePa
 		arg.DisplayGroup,
 		arg.UserID,
 	)
+	return err
+}
+
+const updateUserAdminNote = `-- name: UpdateUserAdminNote :exec
+UPDATE users
+SET admin_note = $1, updated_at = NOW()
+WHERE id = $2
+`
+
+type UpdateUserAdminNoteParams struct {
+	AdminNote pgtype.Text
+	ID        pgtype.UUID
+}
+
+func (q *Queries) UpdateUserAdminNote(ctx context.Context, arg UpdateUserAdminNoteParams) error {
+	_, err := q.db.Exec(ctx, updateUserAdminNote, arg.AdminNote, arg.ID)
 	return err
 }
 

@@ -18,6 +18,7 @@ import (
 // callback a store of this same type.
 type AdminStore interface {
 	UpdateUserFullName(ctx context.Context, userId string, fullName string) error
+	UpdateUserAdminNote(ctx context.Context, userId string, adminNote string) error
 	GetUsers(ctx context.Context, params db.GetUsersAdminParams) ([]db.GetUsersAdminRow, error)
 	CountUsers(ctx context.Context, params db.CountUsersAdminParams) (int64, error)
 	GetAdminMembershipTierOptions(ctx context.Context) ([]db.GetAdminMembershipTierOptionsRow, error)
@@ -131,6 +132,23 @@ func (r *AdminRepository) UpdateUserFullName(ctx context.Context, userId string,
 	}
 	if err := r.store.UpdateUserFullName(ctx, db.UpdateUserFullNameParams{ID: pgUserId, FullName: fullName}); err != nil {
 		return fmt.Errorf("update user full name: %w", err)
+	}
+	return nil
+}
+
+func (r *AdminRepository) UpdateUserAdminNote(ctx context.Context, userId string, adminNote string) error {
+	pgUserId, err := util.GetValidatedUUID(userId)
+	if err != nil {
+		return err
+	}
+	if err := r.store.UpdateUserAdminNote(ctx, db.UpdateUserAdminNoteParams{
+		ID: pgUserId,
+		AdminNote: pgtype.Text{
+			String: adminNote,
+			Valid:  true,
+		},
+	}); err != nil {
+		return fmt.Errorf("update admin note: %w", err)
 	}
 	return nil
 }
