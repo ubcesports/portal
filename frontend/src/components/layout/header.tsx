@@ -3,6 +3,7 @@
 import {
   BarChart3,
   ChevronDown,
+  Gamepad2,
   Logs,
   LogOut,
   Menu,
@@ -80,6 +81,9 @@ function AdminMenuLinks() {
             icon={<BarChart3 aria-hidden="true" className="size-4" />}
           >
             Analytics
+          </DropdownLink>
+          <DropdownLink href="/lounge" icon={<Gamepad2 aria-hidden="true" className="size-4" />}>
+            Lounge
           </DropdownLink>
         </div>
       </details>

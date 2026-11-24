@@ -88,3 +88,19 @@ func TestCheckoutSessionRejectsInvalidCheckedOutByUUID(t *testing.T) {
 		t.Fatalf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
 	}
 }
+
+func TestGetSessionDetailsRejectsInvalidUUID(t *testing.T) {
+	handler := &LoungeHandler{}
+
+	r := chi.NewRouter()
+	r.Get("/lounge/sessions/{session_id}", handler.GetSessionDetails)
+
+	req := httptest.NewRequest(http.MethodGet, "/lounge/sessions/not-a-valid-uuid", nil)
+	rec := httptest.NewRecorder()
+
+	r.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected status %d, got %d", http.StatusBadRequest, rec.Code)
+	}
+}

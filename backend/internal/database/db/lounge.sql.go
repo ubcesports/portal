@@ -81,6 +81,73 @@ func (q *Queries) CheckoutLoungeSession(ctx context.Context, arg CheckoutLoungeS
 	return i, err
 }
 
+const getLoungeSessionDetails = `-- name: GetLoungeSessionDetails :one
+SELECT
+    s.id,
+    s.station_id,
+    s.membership_id,
+    s.check_in_time,
+    s.check_out_time,
+    s.game,
+    u.id AS user_id,
+    u.full_name AS user_full_name,
+    u.email AS user_email,
+    u.student_id AS user_student_id,
+    u.avatar_url AS user_avatar_url,
+    mt.title AS membership_tier_title,
+    s.checked_in_by,
+    checked_in_user.full_name AS checked_in_by_name
+FROM lounge_sessions s
+JOIN users u
+    ON u.id = s.user_id
+JOIN users checked_in_user
+    ON checked_in_user.id = s.checked_in_by
+LEFT JOIN memberships m
+    ON m.id = s.membership_id
+LEFT JOIN membership_tiers mt
+    ON mt.id = m.tier_id
+WHERE s.id = $1
+`
+
+type GetLoungeSessionDetailsRow struct {
+	ID                  pgtype.UUID
+	StationID           pgtype.UUID
+	MembershipID        pgtype.UUID
+	CheckInTime         pgtype.Timestamptz
+	CheckOutTime        pgtype.Timestamptz
+	Game                pgtype.Text
+	UserID              pgtype.UUID
+	UserFullName        string
+	UserEmail           string
+	UserStudentID       pgtype.Text
+	UserAvatarUrl       pgtype.Text
+	MembershipTierTitle pgtype.Text
+	CheckedInBy         pgtype.UUID
+	CheckedInByName     string
+}
+
+func (q *Queries) GetLoungeSessionDetails(ctx context.Context, id pgtype.UUID) (GetLoungeSessionDetailsRow, error) {
+	row := q.db.QueryRow(ctx, getLoungeSessionDetails, id)
+	var i GetLoungeSessionDetailsRow
+	err := row.Scan(
+		&i.ID,
+		&i.StationID,
+		&i.MembershipID,
+		&i.CheckInTime,
+		&i.CheckOutTime,
+		&i.Game,
+		&i.UserID,
+		&i.UserFullName,
+		&i.UserEmail,
+		&i.UserStudentID,
+		&i.UserAvatarUrl,
+		&i.MembershipTierTitle,
+		&i.CheckedInBy,
+		&i.CheckedInByName,
+	)
+	return i, err
+}
+
 const getLoungeStationByID = `-- name: GetLoungeStationByID :one
 SELECT 
     id,
@@ -127,7 +194,8 @@ SELECT
     ls.height,
     ls.created_at,
     ls.updated_at,
-    s.id AS active_session_id
+    s.id AS active_session_id,
+    s.check_in_time AS active_session_check_in_time
 FROM lounge_stations ls
 LEFT JOIN lounge_sessions s 
     ON ls.id = s.station_id AND s.check_out_time IS NULL
@@ -135,17 +203,18 @@ WHERE ls.id = $1
 `
 
 type GetLoungeStationByIDWithActiveSessionRow struct {
-	ID              pgtype.UUID
-	Label           string
-	StationType     LoungeStationType
-	Closed          bool
-	GridRow         int16
-	GridColumn      int16
-	Width           int16
-	Height          int16
-	CreatedAt       pgtype.Timestamptz
-	UpdatedAt       pgtype.Timestamptz
-	ActiveSessionID pgtype.UUID
+	ID                       pgtype.UUID
+	Label                    string
+	StationType              LoungeStationType
+	Closed                   bool
+	GridRow                  int16
+	GridColumn               int16
+	Width                    int16
+	Height                   int16
+	CreatedAt                pgtype.Timestamptz
+	UpdatedAt                pgtype.Timestamptz
+	ActiveSessionID          pgtype.UUID
+	ActiveSessionCheckInTime pgtype.Timestamptz
 }
 
 func (q *Queries) GetLoungeStationByIDWithActiveSession(ctx context.Context, id pgtype.UUID) (GetLoungeStationByIDWithActiveSessionRow, error) {
@@ -163,6 +232,7 @@ func (q *Queries) GetLoungeStationByIDWithActiveSession(ctx context.Context, id 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ActiveSessionID,
+		&i.ActiveSessionCheckInTime,
 	)
 	return i, err
 }
@@ -179,7 +249,8 @@ SELECT
     ls.height,
     ls.created_at,
     ls.updated_at,
-    s.id AS active_session_id
+    s.id AS active_session_id,
+    s.check_in_time AS active_session_check_in_time
 FROM lounge_stations ls
 LEFT JOIN lounge_sessions s 
     ON ls.id = s.station_id AND s.check_out_time IS NULL
@@ -187,17 +258,18 @@ ORDER BY ls.grid_row ASC, ls.grid_column ASC, ls.label ASC
 `
 
 type GetLoungeStationsRow struct {
-	ID              pgtype.UUID
-	Label           string
-	StationType     LoungeStationType
-	Closed          bool
-	GridRow         int16
-	GridColumn      int16
-	Width           int16
-	Height          int16
-	CreatedAt       pgtype.Timestamptz
-	UpdatedAt       pgtype.Timestamptz
-	ActiveSessionID pgtype.UUID
+	ID                       pgtype.UUID
+	Label                    string
+	StationType              LoungeStationType
+	Closed                   bool
+	GridRow                  int16
+	GridColumn               int16
+	Width                    int16
+	Height                   int16
+	CreatedAt                pgtype.Timestamptz
+	UpdatedAt                pgtype.Timestamptz
+	ActiveSessionID          pgtype.UUID
+	ActiveSessionCheckInTime pgtype.Timestamptz
 }
 
 func (q *Queries) GetLoungeStations(ctx context.Context) ([]GetLoungeStationsRow, error) {
@@ -221,6 +293,7 @@ func (q *Queries) GetLoungeStations(ctx context.Context) ([]GetLoungeStationsRow
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ActiveSessionID,
+			&i.ActiveSessionCheckInTime,
 		); err != nil {
 			return nil, err
 		}

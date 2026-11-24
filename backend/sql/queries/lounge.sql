@@ -10,7 +10,8 @@ SELECT
     ls.height,
     ls.created_at,
     ls.updated_at,
-    s.id AS active_session_id
+    s.id AS active_session_id,
+    s.check_in_time AS active_session_check_in_time
 FROM lounge_stations ls
 LEFT JOIN lounge_sessions s 
     ON ls.id = s.station_id AND s.check_out_time IS NULL
@@ -43,7 +44,8 @@ SELECT
     ls.height,
     ls.created_at,
     ls.updated_at,
-    s.id AS active_session_id
+    s.id AS active_session_id,
+    s.check_in_time AS active_session_check_in_time
 FROM lounge_stations ls
 LEFT JOIN lounge_sessions s 
     ON ls.id = s.station_id AND s.check_out_time IS NULL
@@ -100,3 +102,30 @@ SELECT
 FROM lounge_sessions s
 LEFT JOIN updated_session u ON u.id = s.id
 WHERE s.id = sqlc.arg('id');
+
+-- name: GetLoungeSessionDetails :one
+SELECT
+    s.id,
+    s.station_id,
+    s.membership_id,
+    s.check_in_time,
+    s.check_out_time,
+    s.game,
+    u.id AS user_id,
+    u.full_name AS user_full_name,
+    u.email AS user_email,
+    u.student_id AS user_student_id,
+    u.avatar_url AS user_avatar_url,
+    mt.title AS membership_tier_title,
+    s.checked_in_by,
+    checked_in_user.full_name AS checked_in_by_name
+FROM lounge_sessions s
+JOIN users u
+    ON u.id = s.user_id
+JOIN users checked_in_user
+    ON checked_in_user.id = s.checked_in_by
+LEFT JOIN memberships m
+    ON m.id = s.membership_id
+LEFT JOIN membership_tiers mt
+    ON mt.id = m.tier_id
+WHERE s.id = $1;
