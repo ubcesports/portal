@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/ubcesports/memberships/internal/database/db"
@@ -39,6 +40,12 @@ func (s *LoungeService) GetLoungeStations(ctx context.Context) ([]dto.LoungeStat
 			inUse = true
 		}
 
+		var activeSessionCheckInTime *time.Time
+		if row.ActiveSessionCheckInTime.Valid {
+			t := row.ActiveSessionCheckInTime.Time
+			activeSessionCheckInTime = &t
+		}
+
 		result = append(result, dto.LoungeStationDTO{
 			ID:              row.ID.String(),
 			Label:           row.Label,
@@ -50,6 +57,8 @@ func (s *LoungeService) GetLoungeStations(ctx context.Context) ([]dto.LoungeStat
 			Height:          row.Height,
 			ActiveSessionID: activeSessionID,
 			InUse:           inUse,
+
+			ActiveSessionCheckInTime: activeSessionCheckInTime,
 		})
 	}
 
@@ -87,6 +96,11 @@ func (s *LoungeService) UpdateLoungeStation(ctx context.Context, id string, req 
 			activeSessionID = &s
 			inUse = true
 		}
+		var activeSessionCheckInTime *time.Time
+		if currentWithSession.ActiveSessionCheckInTime.Valid {
+			t := currentWithSession.ActiveSessionCheckInTime.Time
+			activeSessionCheckInTime = &t
+		}
 		return &dto.LoungeStationDTO{
 			ID:              currentWithSession.ID.String(),
 			Label:           currentWithSession.Label,
@@ -98,6 +112,8 @@ func (s *LoungeService) UpdateLoungeStation(ctx context.Context, id string, req 
 			Height:          currentWithSession.Height,
 			ActiveSessionID: activeSessionID,
 			InUse:           inUse,
+
+			ActiveSessionCheckInTime: activeSessionCheckInTime,
 		}, nil
 	}
 
@@ -121,6 +137,12 @@ func (s *LoungeService) UpdateLoungeStation(ctx context.Context, id string, req 
 		inUse = true
 	}
 
+	var activeSessionCheckInTime *time.Time
+	if updatedWithSession.ActiveSessionCheckInTime.Valid {
+		t := updatedWithSession.ActiveSessionCheckInTime.Time
+		activeSessionCheckInTime = &t
+	}
+
 	return &dto.LoungeStationDTO{
 		ID:              updatedWithSession.ID.String(),
 		Label:           updatedWithSession.Label,
@@ -132,6 +154,8 @@ func (s *LoungeService) UpdateLoungeStation(ctx context.Context, id string, req 
 		Height:          updatedWithSession.Height,
 		ActiveSessionID: activeSessionID,
 		InUse:           inUse,
+
+		ActiveSessionCheckInTime: activeSessionCheckInTime,
 	}, nil
 }
 
@@ -149,6 +173,18 @@ func (s *LoungeService) CheckoutSession(ctx context.Context, sessionID string, c
 	}
 
 	return toLoungeSessionDTO(row), nil
+}
+
+func (s *LoungeService) GetLoungeSessionDetails(ctx context.Context, sessionID string) (*dto.LoungeSessionDetailsDTO, error) {
+	row, err := s.loungeRepo.GetLoungeSessionDetails(ctx, sessionID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrSessionNotFound
+		}
+		return nil, err
+	}
+
+	return toLoungeSessionDetailsDTO(row), nil
 }
 
 func toLoungeSessionDTO(s db.CheckoutLoungeSessionRow) *dto.LoungeSessionDTO {
@@ -178,6 +214,51 @@ func toLoungeSessionDTO(s db.CheckoutLoungeSessionRow) *dto.LoungeSessionDTO {
 	if s.Game.Valid {
 		g := s.Game.String
 		res.Game = &g
+	}
+
+	return res
+}
+
+func toLoungeSessionDetailsDTO(row db.GetLoungeSessionDetailsRow) *dto.LoungeSessionDetailsDTO {
+	res := &dto.LoungeSessionDetailsDTO{
+		ID:              row.ID.String(),
+		StationID:       row.StationID.String(),
+		CheckInTime:     row.CheckInTime.Time,
+		UserID:          row.UserID.String(),
+		UserFullName:    row.UserFullName,
+		UserEmail:       row.UserEmail,
+		CheckedInBy:     row.CheckedInBy.String(),
+		CheckedInByName: row.CheckedInByName,
+	}
+
+	if row.MembershipID.Valid {
+		membershipID := row.MembershipID.String()
+		res.MembershipID = &membershipID
+	}
+
+	if row.MembershipTierTitle.Valid {
+		title := row.MembershipTierTitle.String
+		res.MembershipTierTitle = &title
+	}
+
+	if row.CheckOutTime.Valid {
+		t := row.CheckOutTime.Time
+		res.CheckOutTime = &t
+	}
+
+	if row.Game.Valid {
+		game := row.Game.String
+		res.Game = &game
+	}
+
+	if row.UserStudentID.Valid {
+		studentID := row.UserStudentID.String
+		res.UserStudentID = &studentID
+	}
+
+	if row.UserAvatarUrl.Valid {
+		avatarURL := row.UserAvatarUrl.String
+		res.UserAvatarURL = &avatarURL
 	}
 
 	return res

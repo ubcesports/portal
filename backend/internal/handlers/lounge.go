@@ -177,3 +177,49 @@ func (h *LoungeHandler) CheckoutSession(w http.ResponseWriter, r *http.Request) 
 
 	util.WriteJson(w, http.StatusOK, updated)
 }
+
+/*
+Returns a lounge session with the member, membership tier, and staff details
+shown in the lounge map's station panel.
+
+API URL: GET /lounge/sessions/{session_id}
+
+Args:
+
+	session_id: UUID of the session in URL path
+
+Returns:
+
+	dto.LoungeSessionDetailsDTO (HTTP 200)
+
+Raises:
+
+	400: invalid session ID (INVALID_ID)
+	404: session not found (SESSION_NOT_FOUND)
+	500: unable to load session (INTERNAL_ERROR)
+*/
+func (h *LoungeHandler) GetSessionDetails(w http.ResponseWriter, r *http.Request) {
+	requestID := middleware.GetReqID(r.Context())
+	sessionID := chi.URLParam(r, "session_id")
+	if _, err := util.GetValidatedUUID(sessionID); err != nil {
+		util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_ID", "Invalid session ID.", requestID)
+		return
+	}
+
+	session, err := h.loungeService.GetLoungeSessionDetails(r.Context(), sessionID)
+	if err != nil {
+		if errors.Is(err, service.ErrSessionNotFound) {
+			util.WriteApiResponse(w, http.StatusNotFound, "SESSION_NOT_FOUND", "Session not found.", requestID)
+			return
+		}
+		slog.ErrorContext(r.Context(), "unable to load lounge session",
+			"error", err,
+			"session_id", sessionID,
+			"request_id", requestID,
+		)
+		util.WriteApiResponse(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Unable to load lounge session.", requestID)
+		return
+	}
+
+	util.WriteJson(w, http.StatusOK, session)
+}

@@ -79,3 +79,11 @@ func (r *LoungeRepository) CheckoutLoungeSession(ctx context.Context, id string,
 		CheckedOutBy: pgCheckedOutBy,
 	})
 }
+
+func (r *LoungeRepository) GetLoungeSessionDetails(ctx context.Context, id string) (db.GetLoungeSessionDetailsRow, error) {
+	pgID, err := util.GetValidatedUUID(id)
+	if err != nil {
+		return db.GetLoungeSessionDetailsRow{}, err
+	}
+	return r.store.GetLoungeSessionDetails(ctx, pgID)
+}

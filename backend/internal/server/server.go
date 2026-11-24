@@ -57,7 +57,6 @@ func provideRouter(params RouterParams) *chi.Mux {
 	r.Get("/exec-profiles", params.ExecProfileHandler.GetExecProfiles)
 	r.Get("/lounge/stations", params.LoungeHandler.GetStations)
 	r.Patch("/lounge/stations/{id}", params.LoungeHandler.UpdateStation)
-	r.Post("/lounge/sessions/{session_id}/check-out", params.LoungeHandler.CheckoutSession)
 
 	// All protected routes
 	r.Group(func(r chi.Router) {
@@ -107,6 +106,10 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.Get("/admin/analytics/memberships-over-time", params.AnalyticsHandler.GetMembershipsBoughtOverTime)
 		r.Get("/admin/analytics/revenue-over-time", params.AnalyticsHandler.GetRevenueOverTime)
 		r.Get("/admin/analytics/export", params.AnalyticsHandler.ExportCSV)
+
+		// Lounge staff actions are admin-only until the lounge permissions from the new roles system land
+		r.Get("/lounge/sessions/{session_id}", params.LoungeHandler.GetSessionDetails)
+		r.Post("/lounge/sessions/{session_id}/check-out", params.LoungeHandler.CheckoutSession)
 	})
 
 	// All exec profile routes
