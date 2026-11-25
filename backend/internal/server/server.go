@@ -79,6 +79,9 @@ func provideRouter(params RouterParams) *chi.Mux {
 		r.Get("/membership/me/all", params.MembershipHandler.GetAllMembershipsWithTransactions)
 		r.Get("/membership/tiers/eligible", params.MembershipHandler.GetEligibleTiersWithPrices)
 		r.Post("/membership/checkout", params.MembershipHandler.CreateMembershipCheckoutSession)
+
+		// Admins can see anyone's roles; members only their own (checked in the handler).
+		r.Get("/users/{id}/roles", params.RoleHandler.GetUserRoles)
 	})
 
 	r.Group(func(r chi.Router) {

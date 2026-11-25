@@ -23,10 +23,11 @@ export type RoleDetails = Role & {
   users_with_role: RoleUser[];
 };
 
-/* A role on the current user's profile (GET /profile). */
+/* A role held by a user (GET /users/{id}/roles, and roles on GET /profile). */
 export type UserRole = {
   id: string;
   name: string;
+  color: string | null;
   permission_keys: PermissionKey[];
 };
 

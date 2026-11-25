@@ -1,10 +1,11 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import {
   assignRoleToUser,
   createRole,
   deleteRole,
   fetchRole,
   fetchRoles,
+  fetchUserRoles,
   unassignRoleFromUser,
   updateRole,
 } from "./admin.roles.api";
@@ -12,6 +13,16 @@ import type { CreateRoleRequest, RoleDetails, UpdateRoleRequest } from "@/lib/ty
 
 const ROLES_KEY = ["admin", "roles"] as const;
 const roleKey = (roleId: string) => [...ROLES_KEY, roleId] as const;
+const userRolesKey = (userId: string) => ["admin", "user", userId, "roles"] as const;
+
+// Refreshes every user's role list, e.g. after a role is renamed, recolored or deleted.
+const invalidateAllUserRoles = (queryClient: QueryClient) =>
+  queryClient.invalidateQueries({
+    predicate: (query) =>
+      query.queryKey[0] === "admin" &&
+      query.queryKey[1] === "user" &&
+      query.queryKey[3] === "roles",
+  });
 
 export function useRoles(options?: { enabled?: boolean }) {
   return useQuery({
@@ -31,18 +42,12 @@ export function useRole(roleId: string, options?: { enabled?: boolean }) {
   });
 }
 
-/*
-  Loads every role's details, which include the users holding it. There is no
-  endpoint for one user's roles, so this is how the user page finds them.
-*/
-export function useAllRoleDetails(roleIds: string[], options?: { enabled?: boolean }) {
-  return useQueries({
-    queries: roleIds.map((roleId) => ({
-      queryKey: roleKey(roleId),
-      queryFn: ({ signal }: { signal: AbortSignal }) => fetchRole(roleId, signal),
-      enabled: options?.enabled ?? true,
-      retry: false,
-    })),
+export function useUserRoles(userId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: userRolesKey(userId),
+    queryFn: ({ signal }) => fetchUserRoles(userId, signal),
+    enabled: options?.enabled !== false && !!userId,
+    retry: false,
   });
 }
 
@@ -67,6 +72,7 @@ export function useUpdateRole(roleId: string) {
       queryClient.setQueryData(roleKey(roleId), role);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ROLES_KEY, exact: true }),
+        invalidateAllUserRoles(queryClient),
         // The current user's permissions may have changed.
         queryClient.invalidateQueries({ queryKey: ["auth"] }),
       ]);
@@ -85,6 +91,7 @@ export function useDeleteRole() {
         // it while its page is still mounted would request it again and show a 404 toast.
         queryClient.invalidateQueries({ queryKey: roleKey(roleId), refetchType: "none" }),
         queryClient.invalidateQueries({ queryKey: ROLES_KEY, exact: true }),
+        invalidateAllUserRoles(queryClient),
         queryClient.invalidateQueries({ queryKey: ["auth"] }),
       ]);
     },
@@ -102,9 +109,10 @@ export function useAssignRole() {
   return useMutation({
     mutationFn: ({ roleId, userId }: RoleAssignment) =>
       assignRoleToUser(roleId, { user_id: userId }),
-    onSuccess: async (_data, { roleId }) => {
+    onSuccess: async (_data, { roleId, userId }) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: roleKey(roleId) }),
+        queryClient.invalidateQueries({ queryKey: userRolesKey(userId) }),
         queryClient.invalidateQueries({ queryKey: ["auth"] }),
       ]);
     },
@@ -116,9 +124,10 @@ export function useUnassignRole() {
 
   return useMutation({
     mutationFn: ({ roleId, userId }: RoleAssignment) => unassignRoleFromUser(roleId, userId),
-    onSuccess: async (_data, { roleId }) => {
+    onSuccess: async (_data, { roleId, userId }) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: roleKey(roleId) }),
+        queryClient.invalidateQueries({ queryKey: userRolesKey(userId) }),
         queryClient.invalidateQueries({ queryKey: ["auth"] }),
       ]);
     },

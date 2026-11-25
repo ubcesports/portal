@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"net/http"
+	"strings"
 )
 
 // Permission keys granted through roles. Keep in sync with the permissions
@@ -104,6 +105,25 @@ func RequirePermission(loader PermissionLoader, permission string) func(http.Han
 func HasPermission(ctx context.Context, permission string) bool {
 	permissions, _ := ctx.Value(permissionsKey{}).(*permissionSet)
 	return permissions != nil && permissions.has(permission)
+}
+
+// CanAccessUser reports whether the caller may see data that belongs to the
+// target user: admins can see anyone, everyone else only themself.
+func CanAccessUser(ctx context.Context, targetUserID string) bool {
+	session := SessionFromContext(ctx)
+	if session == nil || session.User == nil {
+		return false
+	}
+	actorUserID, _ := session.User.ID.(string)
+	return canAccessUser(actorUserID, systemRole(session.User), targetUserID)
+}
+
+func canAccessUser(actorUserID string, actorSystemRole string, targetUserID string) bool {
+	if actorSystemRole == SystemRoleAdmin {
+		return true
+	}
+	actorUserID = strings.TrimSpace(actorUserID)
+	return actorUserID != "" && strings.EqualFold(actorUserID, strings.TrimSpace(targetUserID))
 }
 
 // IsSystemAdmin reports whether the caller is a system admin.

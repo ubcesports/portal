@@ -26,6 +26,7 @@ type fakeRoleStore struct {
 	users       map[string]string // user ID -> full name
 	assignments map[string]bool   // role ID + user ID
 	assignedBy  []string
+	userRoles   map[string][]dto.UserRolePermissions // user ID -> roles
 
 	assignErr   error
 	unassignErr error
@@ -100,8 +101,8 @@ func (f *fakeRoleStore) WithTx(_ context.Context, fn func(repository.RoleStore) 
 }
 
 func (f *fakeRoleStore) GetAll(context.Context) ([]dto.RoleResponse, error) { return nil, nil }
-func (f *fakeRoleStore) GetForUser(context.Context, string) ([]dto.UserRolePermissions, error) {
-	return nil, nil
+func (f *fakeRoleStore) GetForUser(_ context.Context, userID string) ([]dto.UserRolePermissions, error) {
+	return f.userRoles[userID], nil
 }
 func (f *fakeRoleStore) Create(context.Context, dto.CreateRoleRequest, string) (string, error) {
 	return "", nil
@@ -333,5 +334,50 @@ func TestAssignThenUnassignRoundTrip(t *testing.T) {
 	}
 	if err := unassignUser(store, testRoleID, testTargetID); !errors.Is(err, ErrRoleNotAssigned) {
 		t.Fatalf("expected a second unassign to report not assigned, got %v", err)
+	}
+}
+
+func TestGetUserRoles(t *testing.T) {
+	store := newFakeRoleStore()
+	color := "#5865F2"
+	store.userRoles = map[string][]dto.UserRolePermissions{
+		testTargetID: {{ID: testRoleID, Name: testRoleName, Color: &color, PermissionKeys: []string{"users.view"}}},
+	}
+	svc := &RoleService{repository: store}
+
+	roles, err := svc.GetUserRoles(context.Background(), " "+testTargetID+" ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(roles) != 1 || roles[0].ID != testRoleID || roles[0].Color == nil || *roles[0].Color != color {
+		t.Fatalf("unexpected roles: %#v", roles)
+	}
+}
+
+func TestGetUserRolesReturnsEmptyArrayForUserWithoutRoles(t *testing.T) {
+	svc := &RoleService{repository: newFakeRoleStore()}
+
+	roles, err := svc.GetUserRoles(context.Background(), testTargetID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if roles == nil || len(roles) != 0 {
+		t.Fatalf("expected an empty, non-nil slice, got %#v", roles)
+	}
+}
+
+func TestGetUserRolesRejectsMalformedID(t *testing.T) {
+	svc := &RoleService{repository: newFakeRoleStore()}
+
+	if _, err := svc.GetUserRoles(context.Background(), "not-a-uuid"); !errors.Is(err, ErrInvalidRoleUser) {
+		t.Fatalf("expected ErrInvalidRoleUser, got %v", err)
+	}
+}
+
+func TestGetUserRolesUserNotFound(t *testing.T) {
+	svc := &RoleService{repository: newFakeRoleStore()}
+
+	if _, err := svc.GetUserRoles(context.Background(), testMissingID); !errors.Is(err, ErrRoleUserNotFound) {
+		t.Fatalf("expected ErrRoleUserNotFound, got %v", err)
 	}
 }

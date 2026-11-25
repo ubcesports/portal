@@ -22,6 +22,7 @@ var (
 	ErrInvalidRole           = errors.New("Invalid role")
 	ErrInvalidRolePermission = errors.New("Invalid role permission")
 	ErrRoleUserNotFound      = errors.New("User not found")
+	ErrInvalidRoleUser       = errors.New("Invalid user ID")
 	ErrRoleAlreadyAssigned   = errors.New("This user already has this role")
 	ErrRoleNotAssigned       = errors.New("This user does not have this role")
 )
@@ -64,6 +65,29 @@ func (s *RoleService) GetByID(ctx context.Context, id string) (*dto.RoleDetailsR
 // GetForUser returns the user's roles with their permission keys.
 func (s *RoleService) GetForUser(ctx context.Context, userID string) ([]dto.UserRolePermissions, error) {
 	return s.repository.GetForUser(ctx, userID)
+}
+
+// GetUserRoles returns the roles assigned to an existing user. Callers must
+// check that the requester may see this user's roles first.
+func (s *RoleService) GetUserRoles(ctx context.Context, userID string) ([]dto.UserRolePermissions, error) {
+	userID = strings.TrimSpace(userID)
+	if _, err := util.GetValidatedUUID(userID); err != nil {
+		return nil, ErrInvalidRoleUser
+	}
+	if _, err := s.repository.GetAssigneeName(ctx, userID); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrRoleUserNotFound
+		}
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+	roles, err := s.repository.GetForUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	if roles == nil {
+		roles = []dto.UserRolePermissions{}
+	}
+	return roles, nil
 }
 
 func (s *RoleService) Create(

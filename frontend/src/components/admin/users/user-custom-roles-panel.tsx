@@ -6,12 +6,12 @@ import { useId, useRef, useState, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { SurfacePanel } from "@/components/surface-panel";
 import {
-  useAllRoleDetails,
   useAssignRole,
   useRoles,
   useUnassignRole,
+  useUserRoles,
 } from "@/lib/admin/admin.roles.hook";
-import type { Role } from "@/lib/types/role.types";
+import type { Role, UserRole } from "@/lib/types/role.types";
 import type { User } from "@/lib/types/user.types";
 
 function RoleDot({ color }: { color: string | null }) {
@@ -40,18 +40,16 @@ export function UserCustomRolesPanel({ user }: UserCustomRolesPanelProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   const rolesQuery = useRoles();
+  const userRolesQuery = useUserRoles(user.id);
   const roles = rolesQuery.data ?? [];
-  const detailQueries = useAllRoleDetails(roles.map((role) => role.id));
+  const heldRoles = userRolesQuery.data ?? [];
   const assignRole = useAssignRole();
   const unassignRole = useUnassignRole();
 
-  const isLoading = rolesQuery.isPending || detailQueries.some((query) => query.isPending);
-  const hasError = rolesQuery.isError || detailQueries.some((query) => query.isError);
+  const isLoading = rolesQuery.isPending || userRolesQuery.isPending;
+  const hasError = rolesQuery.isError || userRolesQuery.isError;
   const isMutating = assignRole.isPending || unassignRole.isPending;
 
-  const heldRoles = roles.filter((_role, index) =>
-    detailQueries[index]?.data?.users_with_role.some((holder) => holder.user_id === user.id),
-  );
   const heldRoleIDs = new Set(heldRoles.map((role) => role.id));
 
   const query = search.trim().toLowerCase();
@@ -72,7 +70,7 @@ export function UserCustomRolesPanel({ user }: UserCustomRolesPanelProps) {
     }
   };
 
-  const removeRole = async (role: Role) => {
+  const removeRole = async (role: UserRole) => {
     try {
       await unassignRole.mutateAsync({ roleId: role.id, userId: user.id });
       toast.success(`Removed ${role.name} from ${user.full_name}`);
@@ -210,7 +208,7 @@ export function UserCustomRolesPanel({ user }: UserCustomRolesPanelProps) {
                 >
                   {matches.length === 0 ? (
                     <li className="px-3 py-2.5 text-sm text-brand-text-muted">
-                      {heldRoles.length === roles.length
+                      {roles.every((role) => heldRoleIDs.has(role.id))
                         ? "This user already has every role."
                         : "No roles match."}
                     </li>

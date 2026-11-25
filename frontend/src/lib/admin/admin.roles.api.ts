@@ -5,6 +5,7 @@ import type {
   Role,
   RoleDetails,
   UpdateRoleRequest,
+  UserRole,
 } from "@/lib/types/role.types";
 
 export async function fetchRoles(signal?: AbortSignal): Promise<Role[]> {
@@ -17,6 +18,16 @@ export async function fetchRole(roleId: string, signal?: AbortSignal): Promise<R
   const response = await apiClient.get<RoleDetails>(`/admin/roles/${roleId}`, { signal });
 
   return withDefaults(response.data);
+}
+
+/* Admins can load anyone's roles; other users only their own. */
+export async function fetchUserRoles(userId: string, signal?: AbortSignal): Promise<UserRole[]> {
+  const response = await apiClient.get<UserRole[]>(`/users/${userId}/roles`, { signal });
+
+  return (response.data ?? []).map((role) => ({
+    ...role,
+    permission_keys: role.permission_keys ?? [],
+  }));
 }
 
 export async function createRole(body: CreateRoleRequest): Promise<RoleDetails> {

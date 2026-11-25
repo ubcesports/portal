@@ -26,6 +26,7 @@ func TestRoleWriteErrorMapsServiceErrors(t *testing.T) {
 		{"name taken", service.ErrRoleNameTaken, http.StatusConflict, "ROLE_NAME_TAKEN"},
 		{"role not found", service.ErrRoleNotFound, http.StatusNotFound, "ROLE_NOT_FOUND"},
 		{"user not found", service.ErrRoleUserNotFound, http.StatusNotFound, "USER_NOT_FOUND"},
+		{"invalid user", service.ErrInvalidRoleUser, http.StatusBadRequest, "INVALID_USER"},
 		{"already assigned", service.ErrRoleAlreadyAssigned, http.StatusConflict, "ROLE_ALREADY_ASSIGNED"},
 		{"not assigned", service.ErrRoleNotAssigned, http.StatusNotFound, "ROLE_NOT_ASSIGNED"},
 		{"wrapped", errors.Join(errors.New("context"), service.ErrRoleNotAssigned), http.StatusNotFound, "ROLE_NOT_ASSIGNED"},
@@ -75,5 +76,19 @@ func TestAssignAndUnassignRequireAuthentication(t *testing.T) {
 				t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
 			}
 		})
+	}
+}
+
+func TestGetUserRolesRequiresAuthentication(t *testing.T) {
+	handler := &RoleHandler{}
+
+	r := chi.NewRouter()
+	r.Get("/users/{id}/roles", handler.GetUserRoles)
+
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/users/3c2b1a09-8765-4321-abcd-0123456789ab/roles", nil))
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status %d, got %d", http.StatusUnauthorized, rec.Code)
 	}
 }
