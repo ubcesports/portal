@@ -280,7 +280,7 @@ export function UserProfilePanel({ user, onSave, isSaving }: UserProfilePanelPro
           )}
         </DetailRow>
 
-        <DetailRow label="Role">
+        <DetailRow label="System role">
           {isEditing ? (
             <select
               value={draft.role}

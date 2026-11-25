@@ -7,6 +7,7 @@ import { use, useEffect, type ReactNode } from "react";
 import { isAxiosError } from "axios";
 import { UserMembershipsPanel } from "@/components/admin/users/user-memberships-panel";
 import { UserProfilePanel } from "@/components/admin/users/user-profile-panel";
+import { UserCustomRolesPanel } from "@/components/admin/users/user-custom-roles-panel";
 import { AdminExecProfilePanel } from "@/components/admin/users/admin-exec-profile-panel";
 import { BasePage } from "@/components/layout/base-page";
 import { MembershipLoadError } from "@/components/membership/membership-load-error";
@@ -116,6 +117,8 @@ export default function AdminUserDetailPage({ params }: AdminUserDetailPageProps
           </Link>
 
           <UserProfilePanel user={user} onSave={handleSave} isSaving={isSaving} />
+
+          <UserCustomRolesPanel user={user} />
 
           {hasExecGroup && <AdminExecProfilePanel userId={userId} />}
 

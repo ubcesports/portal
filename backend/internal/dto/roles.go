@@ -52,5 +52,6 @@ type RoleUser struct {
 type UserRolePermissions struct {
 	ID             string   `json:"id"`
 	Name           string   `json:"name"`
+	Color          *string  `json:"color"`
 	PermissionKeys []string `json:"permission_keys"`
 }

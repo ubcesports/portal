@@ -178,9 +178,14 @@ func (r *RoleRepository) GetForUser(ctx context.Context, userID string) ([]dto.U
 		if !exists {
 			index = len(roles)
 			roleIndexes[roleID] = index
+			var color *string
+			if row.Color.Valid {
+				color = &row.Color.String
+			}
 			roles = append(roles, dto.UserRolePermissions{
 				ID:             roleID,
 				Name:           row.Name,
+				Color:          color,
 				PermissionKeys: make([]string, 0),
 			})
 		}

@@ -325,6 +325,7 @@ const getRolesForUser = `-- name: GetRolesForUser :many
 SELECT
     r.id,
     r.name,
+    r.color,
     rp.permission
 FROM user_roles ur
 JOIN roles r ON r.id = ur.role_id
@@ -336,6 +337,7 @@ ORDER BY r.display_order, r.name, rp.permission
 type GetRolesForUserRow struct {
 	ID         pgtype.UUID
 	Name       string
+	Color      pgtype.Text
 	Permission pgtype.Text
 }
 
@@ -348,7 +350,12 @@ func (q *Queries) GetRolesForUser(ctx context.Context, userID pgtype.UUID) ([]Ge
 	var items []GetRolesForUserRow
 	for rows.Next() {
 		var i GetRolesForUserRow
-		if err := rows.Scan(&i.ID, &i.Name, &i.Permission); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Color,
+			&i.Permission,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

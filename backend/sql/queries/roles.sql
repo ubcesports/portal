@@ -117,6 +117,7 @@ WHERE id = $1;
 SELECT
     r.id,
     r.name,
+    r.color,
     rp.permission
 FROM user_roles ur
 JOIN roles r ON r.id = ur.role_id

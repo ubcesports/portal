@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/ubcesports/memberships/internal/auth"
 	"github.com/ubcesports/memberships/internal/dto"
 	"github.com/ubcesports/memberships/internal/service"
 	"github.com/ubcesports/memberships/internal/util"
@@ -82,6 +83,50 @@ func (h *RoleHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	util.WriteJson(w, http.StatusOK, role)
+}
+
+/*
+Returns the custom roles assigned to a user, each with its permission keys.
+Admins can look up any user; everyone else can only look up themself.
+
+API URL: GET /users/{id}/roles
+
+Args:
+
+	id: user UUID, from the URL path
+
+Returns:
+
+	an array of roles with id, name, color and permission_keys (HTTP 200)
+
+Raises:
+
+	400: malformed user ID
+	401: user is not authenticated
+	403: the user is neither an admin nor the requested user
+	404: user does not exist
+	500: roles could not be loaded
+*/
+func (h *RoleHandler) GetUserRoles(w http.ResponseWriter, r *http.Request) {
+	requestID := middleware.GetReqID(r.Context())
+	if _, ok := util.CurrentUserID(r); !ok {
+		util.WriteApiResponse(w, http.StatusUnauthorized, "UNAUTHORIZED", "Unauthorized", requestID)
+		return
+	}
+
+	userID := chi.URLParam(r, "id")
+	// Checked before the lookup so non-admins cannot probe which users exist.
+	if !auth.CanAccessUser(r.Context(), userID) {
+		util.WriteApiResponse(w, http.StatusForbidden, "FORBIDDEN", "You can only view your own roles.", requestID)
+		return
+	}
+
+	roles, err := h.service.GetUserRoles(r.Context(), userID)
+	if err != nil {
+		h.writeError(w, r, err, "load")
+		return
+	}
+	util.WriteJson(w, http.StatusOK, roles)
 }
 
 /*
@@ -319,6 +364,8 @@ func (h *RoleHandler) writeError(
 		util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_ROLE_PERMISSION", "One or more permissions are invalid.", requestID)
 	case errors.Is(err, service.ErrRoleNameTaken):
 		util.WriteApiResponse(w, http.StatusConflict, "ROLE_NAME_TAKEN", service.ErrRoleNameTaken.Error(), requestID)
+	case errors.Is(err, service.ErrInvalidRoleUser):
+		util.WriteApiResponse(w, http.StatusBadRequest, "INVALID_USER", service.ErrInvalidRoleUser.Error(), requestID)
 	case errors.Is(err, service.ErrRoleUserNotFound):
 		util.WriteApiResponse(w, http.StatusNotFound, "USER_NOT_FOUND", service.ErrRoleUserNotFound.Error(), requestID)
 	case errors.Is(err, service.ErrRoleNotAssigned):
