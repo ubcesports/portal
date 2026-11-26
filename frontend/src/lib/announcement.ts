@@ -13,4 +13,3 @@ export const announcement: AnnouncementConfig = {
   href: "https://ubcesports.ca/events",
   expiresAt: "2026-11-26T15:50:00-07:00",
 };
-
