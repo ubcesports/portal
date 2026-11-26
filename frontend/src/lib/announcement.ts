@@ -11,6 +11,6 @@ export const announcement: AnnouncementConfig = {
   message: "Liftoff attendees get $5 off all memberships",
   linkLabel: "View event",
   href: "https://ubcesports.ca/events",
-  expiresAt: "2026-11-19T16:20:00-07:00",
+  expiresAt: "2026-11-26T15:50:00-07:00",
 };
 
